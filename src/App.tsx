@@ -1,24 +1,26 @@
-// import { useState } from 'react'
-import wagan from './assets/image/wagan.png'
+// 📁 src/App.tsx
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import ThemeWrapper from './component/chat/ThemeWrapper';
+import ChatComponent from './component/chat/chatComponent';
+import Home from './page/Home/home';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Home />,
+  },
+  {
+    path: '/chat',
+    element: <ChatComponent />,
+  },
+]);
 
 function App() {
-
   return (
-      <div className='w-full h-[100vh] flex justify-center items-center '>
-        <div className='flex flex-col gap-5 justify-center items-center'>
-          <div className='w-[75px] h-[75px]'>
-            <img src={wagan} className="w-full h-full object-cover" alt="Vite logo" />
-          </div>
-          
-
-          <h1 className='text-5xl font-bold'>Je suis Wagan</h1>
-          <h1 className="text-3xl font-bold underline">
-            Hello world!
-          </h1>
-        </div>
-        
-      </div>
-  )
+    <ThemeWrapper>
+      <RouterProvider router={router} />
+    </ThemeWrapper>
+  );
 }
 
-export default App
+export default App;

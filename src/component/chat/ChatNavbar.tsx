@@ -1,0 +1,47 @@
+import logo_bakeli from '../../assets/image/logo-bakeli.png';
+import profil_img from '../../assets/image/profil-img.png';
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
+import { toggleDarkMode } from '../../page/chat/darkModeSlice.ts';
+import { Switch, Space } from 'antd';
+import { Moon, Sun } from 'lucide-react';
+function ChatNavbar() {
+    const isDark = useAppSelector(state => state.theme.darkMode);
+    const dispatch = useAppDispatch();
+
+    // Applique la classe dark sur <html> quand isDark change
+    useEffect(() => {
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [isDark]);
+
+    return (
+        // <nav className="w-full h-14 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between z-30 bg-white dark:bg-gray-800">
+        <nav style={{ backgroundColor: isDark ? '#141414' : '#fff', padding: '10px', borderBottom: isDark ? '1px solid #383838' : '1px solid #4241414D', width: '100%' }} className="flex items-center justify-between z-30">
+            <div className="flex items-center h-full px-4">
+                <img src={logo_bakeli} className="w-15 h-15 " alt="logo bakeli" />
+            </div>
+            <div className='flex items-center justify-center h-full text-lg font-bold' style={{ color: isDark ? '#fff' : '#000' }}>
+                <div className=" flex items-center justify-center h-full">
+                    <Space direction="vertical">
+                        <Switch
+                            checkedChildren={<Sun className=" text-[#FF9800] text-center mt-[2px]" size={18}/>}
+                            unCheckedChildren={ <Moon className="text-[#009988]" size={18} />}
+                            defaultChecked={isDark}
+                            onChange={() => dispatch(toggleDarkMode())}
+                        />
+                    </Space>
+                </div>
+
+                <div className="flex items-center h-full px-4 justify-end">
+                    <img src={profil_img} className="w-12 h-12 rounded-full bg-gray-300 p-1" alt="Profil" />
+                </div>
+            </div>
+        </nav>
+    );
+}
+
+export default ChatNavbar;
