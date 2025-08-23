@@ -2,8 +2,8 @@ import Header from '../../component/home/header.js';
 import Title from '../../component/home/title.js';
 import AssistantCard from '../../component/home/AssistantCard.tsx';
 import { useNavigate } from 'react-router-dom';
-import ousmane from '../../assets/image/wagan.png';
-import kalika from '../../assets/image/wagan.png';
+import ousmane from '../../assets/image/IA_ousmane.png';
+import kalika from '../../assets/image/Kalika_Ia.png';
 import Path4 from '../../assets/image/path4.png';
 import Path2 from '../../assets/image/path2.png';
 import { useAppDispatch, useAppSelector } from '../hooks/hooks.tsx';
@@ -39,12 +39,12 @@ const Home = () => {
             <img
                 src={Path4}
                 alt="Path4"
-                className="absolute w-24 sm:w-40 top-[40%] left-[15%] z-0"
+                className="absolute w-24 sm:w-30 md:w-40 top-[40%] lg:left-[15%] md:left-[3%] hidden sm:block left-[5%]  z-0"
             />
             <img
                 src={Path2}
                 alt="Path2"
-                className="absolute w-24 sm:w-48 top-[65%] right-[15%] z-0"
+                className="absolute w-24 sm:w-35 md:w-48 top-[65%] right-[15%] lg:right-[15%] md:right-[10%] sm:right-[2%] hidden sm:block z-0"
             />
 
 

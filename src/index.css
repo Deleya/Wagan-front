@@ -15,10 +15,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  outline: 1px solid red;
+}
+
+
 a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
+ 
 }
 a:hover {
   color: #535bf2;
@@ -26,10 +32,12 @@ a:hover {
 
 .scrollbar-thin {
   scrollbar-width: thin;
+  scrollbar-color: #adacac transparent;
+ 
 }
-.scrollbar-thumb-gray-400::-webkit-scrollbar-thumb {
-  background-color: #9ca3af;
-  border-radius: 10px;
+.scrollbar-thumb-gray-700::-webkit-scrollbar-thumb {
+  background-color: #db111b;
+  border-radius: 20px;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

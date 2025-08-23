@@ -2,7 +2,7 @@
 import type { FC } from 'react';
 import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
 import { addAssistant } from '../../page/chat/assistantSlice.ts';
-
+import { AiOutlineClose } from "react-icons/ai";
 
 
 
@@ -31,14 +31,14 @@ const AssistantListModal: FC<Props> = ({ isOpen, onClose, assistantsDisponibles 
   return (
     <div className="fixed inset-0 bg-black/30 bg-opacity-50 flex items-center justify-center z-50">
       <div className=" relative p-2 rounded-xl w-full max-w-md text-center"  style={{ backgroundColor: isDark ? ' #f3f3f3' : ' #141414', color: isDark ? '#000' : ' #fff', }}>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {assistantsDisponibles.map((assistant, index) => (
             <div
               key={index}
               onClick={() => handleAdd(assistant)}
               className="cursor-pointer px-4 py-3  rounded "
             >
-              <img src={assistant.image} alt={assistant.name} className="w-48 h-48 mx-auto rounded-md mb-2" />
+              <img src={assistant.image} alt={assistant.name} className="w-48 h-48 mx-auto  rounded-md mb-2" style={{ backgroundColor: isDark ? '  #141414' : ' #f3f3f3', }}/>
               <p className="font-bold ">{assistant.name}</p>
               <p className="text-sm ">{assistant.role}</p>
             </div>
@@ -46,9 +46,9 @@ const AssistantListModal: FC<Props> = ({ isOpen, onClose, assistantsDisponibles 
         </div>
         <button
           onClick={onClose}
-          className="absolute top-0 right-0  px-2  cursor-pointer mr-1 mt-1 bg-red-500 text-white rounded"
+          className="absolute top-0 right-0  w-5 h-5 flex items-center justify-center cursor-pointer mr-1 mt-1 bg-red-500 text-white rounded"
         >
-         X
+         <AiOutlineClose size={12}/>
         </button>
       </div>
     </div>

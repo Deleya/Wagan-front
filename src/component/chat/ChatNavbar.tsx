@@ -20,19 +20,22 @@ function ChatNavbar() {
 
     return (
         // <nav className="w-full h-14 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between z-30 bg-white dark:bg-gray-800">
-        <nav style={{ backgroundColor: isDark ? '#141414' : '#fff', padding: '10px', borderBottom: isDark ? '1px solid #383838' : '1px solid #4241414D', width: '100%' }} className="flex items-center justify-between z-30">
-            <div className="flex items-center h-full px-4">
-                <img src={logo_bakeli} className="w-15 h-15 " alt="logo bakeli" />
+        <nav style={{ width: '100%' }} className="flex sticky top-0 items-center justify-between z-30">
+            <div className="flex items-center h-full px-4  ">
+                <img src={logo_bakeli} className="w-13 h-13 " alt="logo bakeli" />
             </div>
             <div className='flex items-center justify-center h-full text-lg font-bold' style={{ color: isDark ? '#fff' : '#000' }}>
                 <div className=" flex items-center justify-center h-full">
                     <Space direction="vertical">
                         <Switch
-                            checkedChildren={<Sun className=" text-[#FF9800] text-center mt-[2px]" size={18}/>}
-                            unCheckedChildren={ <Moon className="text-[#009988]" size={18} />}
-                            defaultChecked={isDark}
-                            onChange={() => dispatch(toggleDarkMode())}
-                        />
+            checkedChildren={<Sun className="text-[#FF9800] mt-[2px]" size={18} />}
+            unCheckedChildren={<Moon className="text-[#009988]" size={18} />}
+            defaultChecked={isDark}
+            onChange={() => dispatch(toggleDarkMode())}
+            style={{
+              backgroundColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#009688' : '#FF9800BF'
+            }}
+          />
                     </Space>
                 </div>
 

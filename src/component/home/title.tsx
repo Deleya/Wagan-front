@@ -15,10 +15,10 @@ export default function Title() {
                 <img
                     src={Path3}
                     alt="Bienvenue"
-                    className="absolute right-[34%] bottom-[72%] w-16 h-24 "
+                    className="absolute right-[64%] xl:right-[34%] lg:right-[29%] md:right-[23%] hidden md:block bottom-[72%] w-16 h-24 "
                 />
             </div>
-            <p className="text-4xl  flex flex-wrap font-bold text-center text-[#009688] justify-center items-center gap-2">Choisissez
+            <p className="md:text-4xl sm:text-3xl text-2xl flex flex-wrap font-bold text-center text-[#009688] justify-center items-center gap-2 ">Choisissez
                 votre
                 <span
                     className="text-transparent bg-clip-text bg-gradient-to-r from-[#009688]  to-[#FF9800BF]">IA </span>

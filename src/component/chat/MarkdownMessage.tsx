@@ -42,7 +42,7 @@ const MarkdownMessage = ({ content }: Props) => {
             <ol className="list-decimal pl-6 space-y-1">{children}</ol>
         ),
         li: ({ children }) => (
-            <li className="text-gray-800 mb-5" style={{color: isDark ? '#fff' :'#424242'}}>{children}</li>
+            <li className="text-gray-800 mb-5" style={{ color: isDark ? '#fff' : '#424242' }}>{children}</li>
         ),
 
         code({ node, inline, className, children, ...props }: any) {
@@ -62,7 +62,6 @@ const MarkdownMessage = ({ content }: Props) => {
             if (!inline && isSingleLine) {
                 return (
                     <code
-                        // [#FF9900]
                         className="relative bg-gray-100 text-[#FF9900] pl-2 pr-8 py-0.5 rounded text-[13px] font-mono"
                         {...props}
                     >
@@ -79,31 +78,37 @@ const MarkdownMessage = ({ content }: Props) => {
 
             // 🧱 Sinon, code block
             return (
-                <div className="relative my-4">
-                    {match?.[1] && (
-                        <div className="absolute top-1 left-2 bg-gray-200 text-gray-800 text-[11px] font-semibold px-2 rounded uppercase">
-                            {match[1]}
-                        </div>
-                    )}
+                <div className=" my-4">
+                    <div className="p-4 rounded-t-lg  shadow-md flex justify-between items-center" style={{ backgroundColor: isDark ? '#f3f1f1' : '#f3f1f1' }}>
+                        {match?.[1] && (
+                            <div className=" text-gray-800 text-[15px] font-semibold px-2 rounded uppercase">
+                                {match[1]}
+                            </div>
+
+                        )}
+                         <button
+                        onClick={handleCopy}
+                        className="text-gray-700 px-2 py-1 text-xs rounded hover:bg-white cursor-pointer"
+                    >
+                        {copied ? 'Copié !' : <FiCopy />}
+                    </button>
+                    </div>
+
                     <SyntaxHighlighter
                         language={match?.[1] || ''}
                         style={atomOneLight}
                         PreTag="div"
                         customStyle={{
-                            borderRadius: '8px',
+                            borderBottomLeftRadius: '8px',
+                            borderBottomRightRadius: '8px',
                             paddingTop: '1.5rem',
-                            backgroundColor: '#f3f1f1',
+                            backgroundColor: '#f9f9f9',
                         }}
                         {...props}
                     >
                         {codeText}
                     </SyntaxHighlighter>
-                    <button
-                        onClick={handleCopy}
-                        className="absolute top-1 right-2 text-gray-700 px-2 py-1 text-xs rounded hover:bg-white cursor-pointer"
-                    >
-                        {copied ? 'Copié !' : <FiCopy />}
-                    </button>
+
                 </div>
             );
 

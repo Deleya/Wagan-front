@@ -1,24 +1,24 @@
 import { createSlice } from '@reduxjs/toolkit';
 const savedAssistants = JSON.parse(localStorage.getItem('assistants') || '[]');
 interface Assistant {
-    name: string;
-    role: string;
-    image: string;
+  name: string;
+  role: string;
+  image: string;
 }
 
 interface AssistantState {
-    assistants: Assistant[];
+  assistants: Assistant[];
 }
 
 const initialState: AssistantState = {
-    assistants: savedAssistants,
+  assistants: savedAssistants,
 };
 
 const assistantSlice = createSlice({
-    name: 'assistant',
-   initialState,
-    reducers: {
-        addAssistant: (state, action) => {
+  name: 'assistant',
+  initialState,
+  reducers: {
+    addAssistant: (state, action) => {
       const exists = state.assistants.find(
         (a) => a.name === action.payload.name && a.role === action.payload.role
       );
@@ -28,13 +28,22 @@ const assistantSlice = createSlice({
       }
     },
     removeAssistant: (state, action) => {
-      state.assistants = state.assistants.filter((a) => a.name !== action.payload.name);
+      // Ne pas supprimer s’il ne reste qu’un seul assistant
+      if (state.assistants.length <= 1) {
+        return; 
+      }
+
+      // Sinon, supprimer normalement
+      state.assistants = state.assistants.filter(
+        (a) => a.name !== action.payload.name
+      );
       localStorage.setItem('assistants', JSON.stringify(state.assistants));
     },
 
 
-    },
+
+  },
 });
 
-export const { addAssistant, removeAssistant  } = assistantSlice.actions;
+export const { addAssistant, removeAssistant } = assistantSlice.actions;
 export default assistantSlice.reducer;
