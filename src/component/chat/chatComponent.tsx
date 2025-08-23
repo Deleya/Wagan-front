@@ -14,8 +14,8 @@ import AddAssistantModal from './AddAssistantModal.tsx';
 import { useNavigate } from 'react-router-dom';
 import { IoLink } from "react-icons/io5";
 import { MdOutlineAttachFile } from "react-icons/md";
-import { FiCopy, FiEdit } from 'react-icons/fi';
-import { IoMdArrowRoundBack } from "react-icons/io";
+import { FiCopy, } from 'react-icons/fi';
+// import { IoMdArrowRoundBack } from "react-icons/io";
 import { TailChase } from 'ldrs/react'
 import 'ldrs/react/TailChase.css'
 // Default values shown
@@ -82,13 +82,13 @@ function ChatComponent() {
                 ${isSidebarOpen ? 'left-0 pointer-events-auto' : '-left-full '} md:left-0 w-64 z-40`}
                     style={{ backgroundColor: isDark ? ' #141414' : '#f3f3f3', color: isDark ? '#fff' : '#000', }}
                 >
-                    <button
+                    {/* <button
                         onClick={() => navigate('/')}
                         className="rounded-full text-lg shadow  transition duration-300 cursor-pointer"
                         style={{ color: isDark ? '#FFF' : '#fff', }}
                     >
                         <IoMdArrowRoundBack />
-                    </button>
+                    </button> */}
                     <div className="flex md:flex-row items-center gap-25 mb-5">
                         <div className="flex items-center gap-2 md:gap-4 ">
                             <img src={wagan} className="w-12 h-12  rounded-full  p-1 " alt="Wagan Logo" style={{ backgroundColor: isDark ? '  #f3f3f3' : ' #141414', }} />
