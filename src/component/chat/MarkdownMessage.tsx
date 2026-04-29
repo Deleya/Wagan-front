@@ -1,147 +1,243 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import { FiCopy } from 'react-icons/fi';
+import remarkGfm  from 'remark-gfm';
+import rehypeRaw  from 'rehype-raw';
+import { FiCopy, FiCheck } from 'react-icons/fi';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
-import js from 'react-syntax-highlighter/dist/esm/languages/hljs/javascript';
-import html from 'react-syntax-highlighter/dist/esm/languages/hljs/xml';
-import java from 'react-syntax-highlighter/dist/esm/languages/hljs/java';
+import js     from 'react-syntax-highlighter/dist/esm/languages/hljs/javascript';
+import ts     from 'react-syntax-highlighter/dist/esm/languages/hljs/typescript';
+import xml    from 'react-syntax-highlighter/dist/esm/languages/hljs/xml';
+import java   from 'react-syntax-highlighter/dist/esm/languages/hljs/java';
 import python from 'react-syntax-highlighter/dist/esm/languages/hljs/python';
-import bash from 'react-syntax-highlighter/dist/esm/languages/hljs/bash';
-import pwsh from 'react-syntax-highlighter/dist/esm/languages/hljs/powershell';
-import css from 'react-syntax-highlighter/dist/esm/languages/hljs/css';
+import bash   from 'react-syntax-highlighter/dist/esm/languages/hljs/bash';
+import css    from 'react-syntax-highlighter/dist/esm/languages/hljs/css';
+import sql    from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
+import { atomOneLight, atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { useAppSelector } from '../../page/hooks/hooks.tsx';
-import { atomOneLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 SyntaxHighlighter.registerLanguage('javascript', js);
-SyntaxHighlighter.registerLanguage('html', html);
-SyntaxHighlighter.registerLanguage('css', css);
-SyntaxHighlighter.registerLanguage('java', java);
-SyntaxHighlighter.registerLanguage('python', python);
-SyntaxHighlighter.registerLanguage('bash', bash);
-SyntaxHighlighter.registerLanguage('powershell', pwsh);
+SyntaxHighlighter.registerLanguage('js',         js);
+SyntaxHighlighter.registerLanguage('typescript', ts);
+SyntaxHighlighter.registerLanguage('ts',         ts);
+SyntaxHighlighter.registerLanguage('html',       xml);
+SyntaxHighlighter.registerLanguage('xml',        xml);
+SyntaxHighlighter.registerLanguage('java',       java);
+SyntaxHighlighter.registerLanguage('python',     python);
+SyntaxHighlighter.registerLanguage('py',         python);
+SyntaxHighlighter.registerLanguage('bash',       bash);
+SyntaxHighlighter.registerLanguage('sh',         bash);
+SyntaxHighlighter.registerLanguage('css',        css);
+SyntaxHighlighter.registerLanguage('sql',        sql);
 
-interface Props {
-    content: string;
+/* ── Bouton copier pour les blocs de code ── */
+function CodeCopyBtn({ text, isDark }: { text: string; isDark: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <button
+      onClick={copy}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '3px 8px', borderRadius: 6,
+        fontSize: 11, fontWeight: 500,
+        border: 'none', cursor: 'pointer',
+        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        color: isDark ? '#aaa' : '#666',
+        transition: 'background 0.12s',
+      }}
+    >
+      {copied
+        ? <><FiCheck size={11} style={{ color: '#009688' }} /> Copié</>
+        : <><FiCopy  size={11} /> Copier</>
+      }
+    </button>
+  );
 }
 
-const MarkdownMessage = ({ content }: Props) => {
+export default function MarkdownMessage({ content }: { content: string }) {
+  const isDark = useAppSelector(s => s.theme.darkMode);
 
-    const isDark = useAppSelector((state) => state.theme.darkMode)
+  const text   = isDark ? '#ececec' : '#111';
+  const muted  = isDark ? '#888'    : '#666';
+  const border = isDark ? '#2a2a2a' : '#e5e5e5';
+  const codeBg = isDark ? '#161616' : '#f6f8fa';
+  const codeHeaderBg = isDark ? '#1e1e1e' : '#f0f0f0';
+  const inlineCodeBg = isDark ? '#252525' : '#f0f0f0';
+  const inlineCodeColor = isDark ? '#e06c75' : '#c0392b';
 
-    const markdownComponents: Components = {
-        strong: ({ node, ...props }) => (
-            <strong className="text-[#009688] font-semibold" {...props} />
-        ),
-        ul: ({ children }) => (
-            <ul className="list-disc pl-6 pt-3 space-y-1 mb-5">{children}</ul>
-        ),
-        ol: ({ children }) => (
-            <ol className="list-decimal pl-6 space-y-1">{children}</ol>
-        ),
-        li: ({ children }) => (
-            <li className="text-gray-800 mb-5" style={{ color: isDark ? '#fff' : '#424242' }}>{children}</li>
-        ),
+  const components: Components = {
 
-        code({ node, inline, className, children, ...props }: any) {
-            const [copied, setCopied] = useState(false);
-            const match = /language-(\w+)/.exec(className || '');
-            const codeText = String(children).trim();
+    p: ({ children }) => (
+      <p style={{ margin: '0 0 12px', lineHeight: 1.75, color: text, lastChild: { marginBottom: 0 } } as any}>
+        {children}
+      </p>
+    ),
 
-            const handleCopy = () => {
-                navigator.clipboard.writeText(codeText);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-            };
-            const isSingleLine = codeText.split('\n').length === 1;
+    h1: ({ children }) => (
+      <h1 style={{ fontSize: 18, fontWeight: 700, margin: '20px 0 10px', color: text, letterSpacing: '-0.2px' }}>
+        {children}
+      </h1>
+    ),
+    h2: ({ children }) => (
+      <h2 style={{ fontSize: 16, fontWeight: 600, margin: '16px 0 8px', color: text }}>
+        {children}
+      </h2>
+    ),
+    h3: ({ children }) => (
+      <h3 style={{ fontSize: 14, fontWeight: 600, margin: '12px 0 6px', color: text }}>
+        {children}
+      </h3>
+    ),
 
+    strong: ({ children }) => (
+      <strong style={{ fontWeight: 600, color: text }}>{children}</strong>
+    ),
+    em: ({ children }) => (
+      <em style={{ fontStyle: 'italic', color: muted }}>{children}</em>
+    ),
 
-            // ✅ Si ce n’est pas du code en bloc (donc inline)
-            if (!inline && isSingleLine) {
-                return (
-                    <code
-                        className="relative bg-gray-100 text-[#FF9900] pl-2 pr-8 py-0.5 rounded text-[13px] font-mono"
-                        {...props}
-                    >
-                        {codeText}
-                        <button
-                            onClick={handleCopy}
-                            className="absolute top-1 right-1 text-gray-700  text-xs rounded  cursor-pointer"
-                        >
-                            {copied ? <p className='bg-gray-300 ml-5 text-black'>Cpier!</p> : <FiCopy />}
-                        </button>
-                    </code>
-                );
-            }
+    ul: ({ children }) => (
+      <ul style={{ paddingLeft: 20, margin: '0 0 12px', color: text, listStyleType: 'disc' }}>
+        {children}
+      </ul>
+    ),
+    ol: ({ children }) => (
+      <ol style={{ paddingLeft: 20, margin: '0 0 12px', color: text, listStyleType: 'decimal' }}>
+        {children}
+      </ol>
+    ),
+    li: ({ children }) => (
+      <li style={{ marginBottom: 4, lineHeight: 1.7 }}>{children}</li>
+    ),
 
-            // 🧱 Sinon, code block
-            return (
-                <div className=" my-4">
-                    <div className="p-4 rounded-t-lg  shadow-md flex justify-between items-center" style={{ backgroundColor: isDark ? '#f3f1f1' : '#f3f1f1' }}>
-                        {match?.[1] && (
-                            <div className=" text-gray-800 text-[15px] font-semibold px-2 rounded uppercase">
-                                {match[1]}
-                            </div>
+    blockquote: ({ children }) => (
+      <blockquote style={{
+        borderLeft: '3px solid #009688',
+        paddingLeft: 12, margin: '12px 0',
+        color: muted, fontStyle: 'italic',
+        background: isDark ? '#1a1a1a' : '#f9f9f9',
+        borderRadius: '0 8px 8px 0',
+        padding: '8px 12px',
+      }}>
+        {children}
+      </blockquote>
+    ),
 
-                        )}
-                         <button
-                        onClick={handleCopy}
-                        className="text-gray-700 px-2 py-1 text-xs rounded hover:bg-white cursor-pointer"
-                    >
-                        {copied ? 'Copié !' : <FiCopy />}
-                    </button>
-                    </div>
+    a: ({ href, children }) => (
+      <a href={href} target="_blank" rel="noopener noreferrer"
+        style={{ color: '#009688', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+        {children}
+      </a>
+    ),
 
-                    <SyntaxHighlighter
-                        language={match?.[1] || ''}
-                        style={atomOneLight}
-                        PreTag="div"
-                        customStyle={{
-                            borderBottomLeftRadius: '8px',
-                            borderBottomRightRadius: '8px',
-                            paddingTop: '1.5rem',
-                            backgroundColor: '#f9f9f9',
-                        }}
-                        {...props}
-                    >
-                        {codeText}
-                    </SyntaxHighlighter>
+    hr: () => (
+      <hr style={{ border: 'none', borderTop: `1px solid ${border}`, margin: '16px 0' }} />
+    ),
 
-                </div>
-            );
+    table: ({ children }) => (
+      <div style={{ overflowX: 'auto', margin: '12px 0', borderRadius: 10, border: `1px solid ${border}` }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children }) => (
+      <thead style={{ background: codeHeaderBg }}>{children}</thead>
+    ),
+    th: ({ children }) => (
+      <th style={{
+        padding: '8px 14px', textAlign: 'left',
+        fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+        letterSpacing: '0.05em', color: muted,
+        borderBottom: `1px solid ${border}`,
+      }}>
+        {children}
+      </th>
+    ),
+    td: ({ children }) => (
+      <td style={{
+        padding: '8px 14px', color: text,
+        borderBottom: `1px solid ${border}`,
+      }}>
+        {children}
+      </td>
+    ),
 
-        }
+    code({ node, inline, className, children, ...props }: any) {
+      const match    = /language-(\w+)/.exec(className || '');
+      const lang     = match?.[1] ?? '';
+      const codeText = String(children).replace(/\n$/, '');
+      const isBlock  = !inline && (codeText.includes('\n') || !!lang);
 
-    };
+      /* ── Inline code ── */
+      if (!isBlock) {
+        return (
+          <code style={{
+            padding: '2px 6px', borderRadius: 5,
+            fontSize: 13, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            background: inlineCodeBg, color: inlineCodeColor,
+          }}>
+            {codeText}
+          </code>
+        );
+      }
 
-    return (
-        <div className="prose prose-sm max-w-full dark:prose-invert  prose-p:mb-3 prose-li:mb-1 prose-pre:rounded-xl prose-code:before:hidden prose-code:after:hidden">
+      /* ── Block code ── */
+      return (
+        <div style={{
+          margin: '14px 0', borderRadius: 12, overflow: 'hidden',
+          border: `1px solid ${border}`,
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 14px',
+            background: codeHeaderBg,
+            borderBottom: `1px solid ${border}`,
+          }}>
+            <span style={{
+              fontSize: 11, fontWeight: 600, fontFamily: 'monospace',
+              textTransform: 'uppercase', letterSpacing: '0.06em', color: muted,
+            }}>
+              {lang || 'code'}
+            </span>
+            <CodeCopyBtn text={codeText} isDark={isDark} />
+          </div>
 
-            <ReactMarkdown
-                components={markdownComponents}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-            >
-                {content}
-            </ReactMarkdown>
+          {/* Code */}
+          <SyntaxHighlighter
+            language={lang}
+            style={isDark ? atomOneDark : atomOneLight}
+            PreTag="div"
+            customStyle={{
+              margin: 0, padding: '14px 16px',
+              background: codeBg,
+              fontSize: 13, lineHeight: 1.65,
+              borderRadius: 0,
+            }}
+            {...props}
+          >
+            {codeText}
+          </SyntaxHighlighter>
         </div>
+      );
+    },
+  };
 
-        // <div className="prose prose-sm max-w-full dark:prose-invert text-black dark:text-white prose-p:mb-3 prose-li:mb-1 prose-pre:rounded-xl prose-code:before:hidden prose-code:after:hidden">
-        //     <ReactMarkdown
-        //         components={markdownComponents}
-        //         remarkPlugins={[remarkGfm]}
-        //         rehypePlugins={[rehypeRaw]}
-        //     >
-        //         {content}
-        //     </ReactMarkdown>
-        // </div>
-    );
-};
-
-export default MarkdownMessage;
-
-// ici j'ai mis le bloc du code en bg rouge donc je vois que meme quand il fias des explication
-// les petit code qu'il explique il va prendre ti=outes la largeur donc ce qui suivent fait retour al ligne drecte
-// je pense que si on arrive a bien lui dire quand le code il s'agis d'un code de 1 ligne il vas maitre le texte apres juste le code pas en bas 
+  return (
+    <div style={{ fontSize: 14, lineHeight: 1.7 }}>
+      <ReactMarkdown
+        components={components}
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw]}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}

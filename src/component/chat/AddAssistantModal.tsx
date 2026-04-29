@@ -1,58 +1,128 @@
-// component/chat/AssistantListModal.tsx
 import type { FC } from 'react';
 import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
 import { addAssistant } from '../../page/chat/assistantSlice.ts';
-import { AiOutlineClose } from "react-icons/ai";
+import { RiCloseLine } from 'react-icons/ri';
 
-
-
+interface Assistant { name: string; role: string; image: string; }
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  assistantsDisponibles: { name: string; role: string; image: string }[];
+  assistantsDisponibles: Assistant[];
 }
 
+const AddAssistantModal: FC<Props> = ({ isOpen, onClose, assistantsDisponibles }) => {
+  const dispatch   = useAppDispatch();
+  const assistants = useAppSelector(s => s.assistant.assistants);
+  const isDark     = useAppSelector(s => s.theme.darkMode);
 
-
-const AssistantListModal: FC<Props> = ({ isOpen, onClose, assistantsDisponibles })=> {
-  const dispatch = useAppDispatch();
-  const assistants = useAppSelector((state) => state.assistant.assistants);
-  const isDark = useAppSelector((state) => state.theme.darkMode)
   if (!isOpen) return null;
 
-  const handleAdd = (assistant: any) => {
-    const exists = assistants.find((a) => a.name === assistant.name && a.role === assistant.role);
-    if (!exists) {
-      dispatch(addAssistant(assistant));
-    }
+  const bg     = isDark ? '#161616' : '#ffffff';
+  const border = isDark ? '#222'    : '#ebebeb';
+  const text   = isDark ? '#ececec' : '#111';
+  const muted  = isDark ? '#666'    : '#999';
+  const cardHover = isDark ? '#1e1e1e' : '#f7f7f7';
+
+  const handleAdd = (a: Assistant) => {
+    if (!assistants.find(x => x.name === a.name)) dispatch(addAssistant(a));
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 bg-opacity-50 flex items-center justify-center z-50">
-      <div className=" relative p-2 rounded-xl w-full max-w-md text-center"  style={{ backgroundColor: isDark ? ' #f3f3f3' : ' #141414', color: isDark ? '#000' : ' #fff', }}>
-        <div className="grid grid-cols-2 gap-3">
-          {assistantsDisponibles.map((assistant, index) => (
-            <div
-              key={index}
-              onClick={() => handleAdd(assistant)}
-              className="cursor-pointer px-4 py-3  rounded "
-            >
-              <img src={assistant.image} alt={assistant.name} className="w-48 h-48 mx-auto  rounded-md mb-2" style={{ backgroundColor: isDark ? '  #141414' : ' #f3f3f3', }}/>
-              <p className="font-bold ">{assistant.name}</p>
-              <p className="text-sm ">{assistant.role}</p>
-            </div>
-          ))}
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+        background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(6px)',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 360,
+          background: bg, border: `1px solid ${border}`,
+          borderRadius: 18, padding: 24,
+          boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div>
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: text, marginBottom: 4 }}>
+              Choisir un assistant
+            </h3>
+            <p style={{ fontSize: 12, color: muted }}>
+              Sélectionne l'assistant à ajouter à ta session
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 28, height: 28, borderRadius: 8,
+              border: 'none', cursor: 'pointer',
+              background: isDark ? '#222' : '#f0f0f0',
+              color: muted, flexShrink: 0,
+            }}
+          >
+            <RiCloseLine size={15} />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="absolute top-0 right-0  w-5 h-5 flex items-center justify-center cursor-pointer mr-1 mt-1 bg-red-500 text-white rounded"
-        >
-         <AiOutlineClose size={12}/>
-        </button>
+
+        {/* Liste */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {assistantsDisponibles.map((a, i) => {
+            const alreadyAdded = !!assistants.find(x => x.name === a.name);
+            return (
+              <button
+                key={i}
+                onClick={() => !alreadyAdded && handleAdd(a)}
+                disabled={alreadyAdded}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 12px', borderRadius: 12,
+                  border: `1px solid ${border}`,
+                  background: 'transparent',
+                  cursor: alreadyAdded ? 'not-allowed' : 'pointer',
+                  opacity: alreadyAdded ? 0.45 : 1,
+                  textAlign: 'left',
+                  transition: 'background 0.12s',
+                  width: '100%',
+                }}
+                onMouseEnter={e => {
+                  if (!alreadyAdded) (e.currentTarget as HTMLElement).style.background = cardHover;
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLElement).style.background = 'transparent';
+                }}
+              >
+                <img
+                  src={a.image} alt={a.name}
+                  style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+                />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: text }}>{a.name}</p>
+                  <p style={{ fontSize: 11, color: muted }}>{a.role}</p>
+                </div>
+                {alreadyAdded && (
+                  <span style={{
+                    fontSize: 11, padding: '2px 8px', borderRadius: 20,
+                    background: 'rgba(0,150,136,0.12)', color: '#009688',
+                    flexShrink: 0,
+                  }}>
+                    Actif
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 };
 
-export default AssistantListModal;
+export default AddAssistantModal;

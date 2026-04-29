@@ -1,50 +1,59 @@
-import logo_bakeli from '../../assets/image/logo-bakeli.png';
-import profil_img from '../../assets/image/profil-img.png';
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
 import { toggleDarkMode } from '../../page/chat/darkModeSlice.ts';
-import { Switch, Space } from 'antd';
+import logo_bakeli from '../../assets/image/logo-bakeli.png';
+import profil_img  from '../../assets/image/profil-img.png';
 import { Moon, Sun } from 'lucide-react';
-function ChatNavbar() {
-    const isDark = useAppSelector(state => state.theme.darkMode);
-    const dispatch = useAppDispatch();
 
-    // Applique la classe dark sur <html> quand isDark change
-    useEffect(() => {
-        if (isDark) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
+export default function ChatNavbar() {
+  const isDark   = useAppSelector(s => s.theme.darkMode);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
+  const border = isDark ? '#222' : '#ebebeb';
+  const muted  = isDark ? '#666' : '#999';
+  const bg     = isDark ? '#1a1a1a' : '#f0f0f0';
+  const text   = isDark ? '#ccc' : '#555';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+      {/* Logo Bakeli */}
+      <img src={logo_bakeli} alt="Bakeli" style={{ height: 32, width: 'auto', opacity: 0.85 }} />
+
+      {/* Séparateur */}
+      <div style={{ width: 1, height: 20, background: border }} />
+
+      {/* Toggle dark/light */}
+      <button
+        className="theme-toggle"
+        onClick={() => dispatch(toggleDarkMode())}
+        style={{ background: bg, color: text, border: `1px solid ${border}` }}
+        title={isDark ? 'Mode clair' : 'Mode sombre'}
+      >
+        {isDark
+          ? <Sun  size={13} style={{ color: '#FF9800' }} />
+          : <Moon size={13} style={{ color: '#009688' }} />
         }
-    }, [isDark]);
+        <span style={{ fontSize: 12 }}>{isDark ? 'Clair' : 'Sombre'}</span>
+      </button>
 
-    return (
-        // <nav className="w-full h-14 border-b border-gray-300 dark:border-gray-700 flex items-center justify-between z-30 bg-white dark:bg-gray-800">
-        <nav style={{ width: '100%' }} className="flex sticky top-0 items-center justify-between z-30">
-            <div className="flex items-center h-full px-4  ">
-                <img src={logo_bakeli} className="w-13 h-13 " alt="logo bakeli" />
-            </div>
-            <div className='flex items-center justify-center h-full text-lg font-bold' style={{ color: isDark ? '#fff' : '#000' }}>
-                <div className=" flex items-center justify-center h-full">
-                    <Space direction="vertical">
-                        <Switch
-            checkedChildren={<Sun className="text-[#FF9800] mt-[2px]" size={18} />}
-            unCheckedChildren={<Moon className="text-[#009988]" size={18} />}
-            defaultChecked={isDark}
-            onChange={() => dispatch(toggleDarkMode())}
-            style={{
-              backgroundColor: isDark ? '#FFFFFF' : '#000000', color: isDark ? '#009688' : '#FF9800BF'
-            }}
-          />
-                    </Space>
-                </div>
+      {/* Séparateur */}
+      <div style={{ width: 1, height: 20, background: border }} />
 
-                <div className="flex items-center h-full px-4 justify-end">
-                    <img src={profil_img} className="w-12 h-12 rounded-full bg-gray-300 p-1" alt="Profil" />
-                </div>
-            </div>
-        </nav>
-    );
+      {/* Avatar */}
+      <img
+        src={profil_img}
+        alt="Profil"
+        style={{
+          width: 32, height: 32, borderRadius: '50%',
+          objectFit: 'cover',
+          border: `2px solid ${border}`,
+        }}
+      />
+    </div>
+  );
 }
-
-export default ChatNavbar;

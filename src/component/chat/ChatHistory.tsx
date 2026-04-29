@@ -1,83 +1,139 @@
-import { useState } from 'react'; // 🔴 à ajouter
+import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
 import { removeAssistant } from '../../page/chat/assistantSlice.ts';
-import { IoIosChatboxes } from "react-icons/io";
-import { TbLibraryPhoto } from "react-icons/tb";
-import { HistoryOutlined, CloseOutlined } from '@ant-design/icons';
+import { IoIosChatboxes } from 'react-icons/io';
+import { HistoryOutlined } from '@ant-design/icons';
+import { TbLibraryPhoto } from 'react-icons/tb';
+import { RiCloseLine } from 'react-icons/ri';
 
-function ChatHistory() {
-    const isDark = useAppSelector((state) => state.theme.darkMode);
-    const assistants = useAppSelector((state) => state.assistant.assistants);
-    const dispatch = useAppDispatch();
+export default function ChatHistory() {
+  const isDark     = useAppSelector(s => s.theme.darkMode);
+  const assistants = useAppSelector(s => s.assistant.assistants);
+  const dispatch   = useAppDispatch();
 
-    const [selectedAssistant, setSelectedAssistant] = useState<string | null>(
-        assistants.length > 0 ? assistants[0].name : null
-    );
+  const [selected, setSelected] = useState<string | null>(assistants[0]?.name ?? null);
 
-    const handleSelect = (name: string) => {
-        setSelectedAssistant(name);
-        // Ici, vous pouvez ajouter une logique pour charger l'historique de chat de l'assistant sélectionné
-        // Par exemple, en dispatchant une action ou en naviguant vers une page de chat
-    };
+  const text   = isDark ? '#ececec' : '#111';
+  const muted  = isDark ? '#666'    : '#999';
+  const border = isDark ? '#222'    : '#ebebeb';
+  const active = isDark ? '#1e1e1e' : '#eaf4f3';
+  const activeBorder = '#009688';
 
-    return (
-        <div className="flex-1 overflow-y-auto space-y-2 mt-5">
-            {assistants.map((a, index) => (
-                <div
-                    key={index}
-                    onClick={() => handleSelect(a.name)} 
-                    className="flex justify-between items-center space-x-2 p-3 rounded-lg cursor-pointer"
-                    style={{
-                        border: a.name === selectedAssistant
-                            ? `2px solid #009688` 
-                            : isDark
-                            ? '1px solid #333'
-                            : '1px solid #ccc',
-                        backgroundColor: a.name === selectedAssistant
-                            ? (isDark ? '#222' : '#f0f0f0') 
-                            : 'transparent',
-                    }}
-                >
-                    <div className="flex items-center space-x-2">
-                        <img src={a.image} className="w-10 h-10 rounded-lg" />
-                        <div>
-                            <p className="font-bold">{a.name}</p>
-                            <p className="text-sm" style={{ color: isDark ? '#FFFFFF' : '#000000' }}>{a.role}</p>
-                        </div>
-                    </div>
+  const navItems = [
+    { icon: <IoIosChatboxes size={14} />, label: 'Nouvelle discussion' },
+    { icon: <HistoryOutlined style={{ fontSize: 13 }} />, label: 'Historique' },
+    { icon: <TbLibraryPhoto size={14} />, label: 'Bibliothèque' },
+  ];
 
-                    {assistants.length > 1 && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation(); // empêche le clic de sélectionner l’assistant
-                                dispatch(removeAssistant(a));
-                                if (a.name === selectedAssistant) {
-                                    // si on supprime l’assistant actif, on sélectionne un autre
-                                    const remaining = assistants.filter(as => as.name !== a.name);
-                                    setSelectedAssistant(remaining[0]?.name || null);
-                                }
-                            }}
-                            className="text-red-500 hover:text-red-700 cursor-pointer"
-                        >
-                            <CloseOutlined />
-                        </button>
-                    )}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+      {/* ── Assistants ── */}
+      {assistants.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <p style={{
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
+            textTransform: 'uppercase', color: muted,
+            padding: '0 10px', marginBottom: 6,
+          }}>
+            Assistants
+          </p>
+
+          {assistants.map((a, i) => {
+            const isActive = a.name === selected;
+            return (
+              <div
+                key={i}
+                className={`assistant-card${isDark ? ' dark' : ''}`}
+                onClick={() => setSelected(a.name)}
+                style={{
+                  background: isActive ? active : 'transparent',
+                  border: `1px solid ${isActive ? activeBorder : 'transparent'}`,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <img
+                    src={a.image}
+                    alt={a.name}
+                    style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{
+                      fontSize: 13, fontWeight: 500,
+                      color: isActive ? '#009688' : text,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {a.name}
+                    </p>
+                    <p style={{
+                      fontSize: 11, color: muted,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {a.role}
+                    </p>
+                  </div>
                 </div>
-            ))}
 
-            <div className="space-y-4 mt-7">
-                <button className="flex items-center gap-2 text-sm cursor-pointer">
-                    <IoIosChatboxes /> Nouvelle discussion
-                </button>
-                <button className="flex items-center gap-2 text-sm cursor-pointer">
-                    <HistoryOutlined /> Historique
-                </button>
-                <button className="flex items-center gap-2 text-sm cursor-pointer">
-                    <TbLibraryPhoto /> Bibliothèque
-                </button>
-            </div>
+                {assistants.length > 1 && (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      dispatch(removeAssistant(a));
+                      if (a.name === selected) {
+                        const rest = assistants.filter(x => x.name !== a.name);
+                        setSelected(rest[0]?.name ?? null);
+                      }
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 22, height: 22, borderRadius: 6,
+                      border: 'none', background: 'none',
+                      cursor: 'pointer', color: muted, flexShrink: 0,
+                      opacity: 0, transition: 'opacity 0.15s',
+                    }}
+                    className="remove-btn"
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)';
+                      (e.currentTarget as HTMLElement).style.color = '#ef4444';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'none';
+                      (e.currentTarget as HTMLElement).style.color = muted;
+                    }}
+                  >
+                    <RiCloseLine size={13} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
-    );
-}
+      )}
 
-export default ChatHistory;
+      {/* ── Séparateur ── */}
+      <div style={{ height: 1, background: border, margin: '0 10px 12px' }} />
+
+      {/* ── Navigation ── */}
+      <p style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
+        textTransform: 'uppercase', color: muted,
+        padding: '0 10px', marginBottom: 6,
+      }}>
+        Navigation
+      </p>
+
+      {navItems.map(({ icon, label }) => (
+        <button
+          key={label}
+          className={`nav-btn${isDark ? ' dark' : ''}`}
+          style={{ color: muted }}
+          onMouseEnter={e => (e.currentTarget.style.color = text)}
+          onMouseLeave={e => (e.currentTarget.style.color = muted)}
+        >
+          {icon}
+          <span style={{ fontSize: 13 }}>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
