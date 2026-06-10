@@ -1,12 +1,29 @@
-// 📁 src/page/admin/AdminDashboard.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { BarChart3, LogOut, MessageCircle, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react';
+import UsersList from './UsersList';
+import { logout } from '../auth/authSlice';
+import { useAppDispatch } from '../hooks/hooks';
+import { DatePicker, ConfigProvider, theme } from 'antd';
 
-// Enregistrer les composants ChartJS (Étape obligatoire en React)
+const { RangePicker } = DatePicker;
+
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// 1. On définit la "forme" (interface) des données que Django va nous renvoyer
+type ActiveView = 'analyse' | 'prospects' | 'users';
+
+interface Prospect {
+  phone?: string;
+  sentiment?: string;
+  avg_score?: number;
+  nb_messages?: number;
+  last_contact?: string;
+  first_contact?: string;
+  statut?: string;
+}
+
 interface DashboardData {
   total: number;
   utilisateurs: number;
@@ -18,189 +35,374 @@ interface DashboardData {
   p_neutre: number;
   p_negatif: number;
   now: string;
+  prospects_list?: Prospect[];
+  taux_conversion?: number;
+  nb_prospects_convertis?: number;
+  avg_messages_to_convert?: number | null;
 }
 
-const AdminDashboard: React.FC = () => {
-  // 2. Création du State : null au départ, sera rempli avec les données Django
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
-  // 3. useEffect : S'exécute automatiquement quand on arrive sur la page
+const AdminDashboard: React.FC = () => {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>('analyse');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dateRange, setDateRange] = useState<[string, string] | null>(null);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem('access'); // On récupère le token JWT
-        
-        // On interroge notre endpoint Django
-        const response = await fetch('http://127.0.0.1:8000/whatsapp/dashboard/api/', {
-          method: 'GET',
+        const token = localStorage.getItem('access');
+        let url = `${base}/whatsapp/dashboard/api/`;
+        if (dateRange) {
+          url += `?start_date=${dateRange[0]}&end_date=${dateRange[1]}`;
+        }
+        const response = await fetch(url, {
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          }
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         });
 
-        if (!response.ok) throw new Error("Erreur lors de la récupération des données");
-        
-        const jsonData = await response.json();
-        setData(jsonData); // On stocke les données dans le State React
+        if (!response.ok) throw new Error("Erreur lors de la recuperation des donnees");
+        setData(await response.json());
       } catch (err: any) {
         setError(err.message);
       } finally {
-        setLoading(false); // On arrête l'état de chargement
+        setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []); // Le tableau vide [] signifie "Ne le faire qu'une seule fois au démarrage"
+  }, [dateRange]);
 
-  // 4. États de chargement et d'erreur
-  if (loading) return <div className="p-8 text-center text-slate-500">Chargement des données CRM...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">Erreur: {error}</div>;
-  if (!data) return null;
+  const colors = isDark ? {
+    page: 'bg-[#0B1120] text-slate-100',
+    panel: 'bg-[#1e293b]/70 backdrop-blur-3xl border-[#334155] shadow-2xl shadow-black/40',
+    soft: 'bg-slate-800/40',
+    text: 'text-slate-100',
+    muted: 'text-slate-400',
+    border: 'border-[#334155]',
+    hover: 'hover:bg-slate-800/80 transition-colors',
+    rowHover: 'hover:bg-slate-800/30 transition-colors duration-200',
+  } : {
+    page: 'bg-[#f8fafc] text-slate-800',
+    panel: 'bg-white border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]',
+    soft: 'bg-slate-50',
+    text: 'text-slate-800',
+    muted: 'text-slate-500',
+    border: 'border-slate-100',
+    hover: 'hover:bg-slate-50 transition-colors',
+    rowHover: 'hover:bg-slate-50/50 transition-colors duration-200',
+  };
 
-  // 5. Configuration du graphique Doughnut
-  const hasData = data.utilisateurs > 0;
+  const prospects = data?.prospects_list ?? [];
 
-  const chartData = {
-    labels: hasData 
-      ? ['Prospects Chauds', 'Prospects Froids', 'Alertes Humaines', ...(data.pending > 0 ? ['En attente'] : [])]
-      : ['Aucune donnée'],
-    datasets: [
-      {
-        data: hasData 
+  const chartData = useMemo(() => {
+    const hasData = !!data && data.utilisateurs > 0;
+    return {
+      labels: hasData
+        ? ['Prospects Chauds', 'Prospects Froids', 'Alertes Humaines', ...(data.pending > 0 ? ['En attente'] : [])]
+        : ['Aucune donnee'],
+      datasets: [{
+        data: hasData
           ? [data.positifs, data.neutres, data.negatifs, ...(data.pending > 0 ? [data.pending] : [])]
           : [1],
-        backgroundColor: hasData 
+        backgroundColor: hasData
           ? ['#10b981', '#94a3b8', '#f43f5e', ...(data.pending > 0 ? ['#fbbf24'] : [])]
-          : ['#f1f5f9'],
-        hoverBackgroundColor: hasData 
-          ? ['#059669', '#64748b', '#e11d48', ...(data.pending > 0 ? ['#d97706'] : [])]
-          : ['#e2e8f0'],
+          : ['#cbd5e1'],
         borderWidth: 0,
-        hoverOffset: 4
-      }
-    ]
-  };
+        hoverOffset: 4,
+      }],
+    };
+  }, [data]);
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: true,
     cutout: '78%',
-    plugins: {
-      legend: { display: false }
-    }
+    plugins: { legend: { display: false } },
   };
 
-  // 6. L'interface (Rendu JSX avec Tailwind, identique à votre HTML d'origine)
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
+
+  if (loading) {
+    return <div className={`min-h-screen p-8 text-center ${colors.page}`}>Chargement des donnees CRM...</div>;
+  }
+
+  if (error) {
+    return <div className={`min-h-screen p-8 text-center text-red-500 ${colors.page}`}>Erreur: {error}</div>;
+  }
+
+  if (!data) return null;
+
+  const navItems = [
+    { key: 'analyse' as const, label: 'Analyse', icon: BarChart3 },
+    { key: 'prospects' as const, label: 'Prospects', icon: MessageCircle },
+    { key: 'users' as const, label: 'Utilisateurs', icon: Users },
+  ];
+
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-800 antialiased p-8">
-
-      {/* HEADER: CRM Overview & WORK.BAKETLI.TECH */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-8">
-        <div className="flex items-center gap-3">
-          {/* Icône de type "Chart" similaire à l'image */}
-          <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-          </svg>
-          <span className="text-xl font-bold text-slate-900">CRM Overview</span>
-        </div>
-        <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
-          WORK.BAKETLI.TECH
-        </div>
-      </div>
-      
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900">Satisfaction Client (WhatsApp)</h1>
-        <p className="text-sm text-slate-500 mt-1">Analyse globale de la qualité du support CRM.</p>
-      </div>
-
-      {/* Cartes (KPIs) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        
-        {/* Total Messages */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Volume de Messages</p>
-          <div className="mt-4 text-3xl font-semibold text-slate-900">{data.total}</div>
-        </div>
-
-        {/* Total Clients */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Clients Uniques</p>
-          <div className="mt-4 text-3xl font-semibold text-slate-900">{data.utilisateurs}</div>
-        </div>
-
-        {/* Satisfaits -> Prospects Chauds */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
-          <div className="flex justify-between items-center">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Prospects Chauds</p>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{data.p_positif}%</span>
-          </div>
-          <div className="mt-4 text-3xl font-semibold text-slate-900">{data.positifs}</div>
-        </div>
-
-        {/* Mécontents -> Alertes Humaines */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500"></div>
-          <div className="flex justify-between items-center">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alertes Humaines</p>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800">{data.p_negatif}%</span>
-          </div>
-          <div className="mt-4 text-3xl font-semibold text-slate-900">{data.negatifs}</div>
-        </div>
-      </div>
-
-      {/* Section Graphique Doughnut */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 mb-8 flex flex-col lg:flex-row gap-12 items-center justify-around">
-        
-        {/* Légende du graphique */}
-        <div className="w-full lg:w-1/3">
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">Qualification des Prospects</h3>
-          <p className="text-sm text-slate-500 mb-8">Répartition des niveaux d'intérêt des clients WhatsApp.</p>
-          
-          <div className="space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3"><span className="w-3 h-3 rounded-full bg-emerald-500"></span><span className="text-sm font-medium text-slate-700">Prospects Chauds</span></div>
-              <span className="text-sm font-semibold text-slate-900">{data.positifs} ({data.p_positif}%)</span>
+    <div className={`admin-dashboard min-h-screen font-sans antialiased transition-colors duration-500 ${colors.page}`}>
+      <div className="flex min-h-screen relative selection:bg-teal-500/30">
+        <aside
+          className={`shrink-0 border-r z-20 sticky top-0 h-screen ${colors.panel} transition-all duration-300 ease-in-out ${
+            sidebarOpen ? 'w-[300px]' : 'w-[88px]'
+          }`}
+        >
+          <div className="h-full flex flex-col py-6">
+            <div className="flex items-center justify-between px-6 pb-6 mb-4 border-b border-inherit">
+              {sidebarOpen && (
+                <div>
+                  <p className="text-base font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-teal-500 to-emerald-600">WAGAN CRM</p>
+                  <p className={`text-[11px] font-medium tracking-widest mt-1 ${colors.muted}`}>WORK.BAKETLI</p>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((value) => !value)}
+                className={`h-10 w-10 inline-flex items-center justify-center rounded-xl ${colors.hover}`}
+                aria-label={sidebarOpen ? 'Replier la sidebar' : 'Ouvrir la sidebar'}
+              >
+                {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+              </button>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3"><span className="w-3 h-3 rounded-full bg-slate-400"></span><span className="text-sm font-medium text-slate-700">Prospects Froids</span></div>
-              <span className="text-sm font-semibold text-slate-900">{data.neutres} ({data.p_neutre}%)</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3"><span className="w-3 h-3 rounded-full bg-rose-500"></span><span className="text-sm font-medium text-slate-700">Alertes Humaines</span></div>
-              <span className="text-sm font-semibold text-slate-900">{data.negatifs} ({data.p_negatif}%)</span>
-            </div>
+
+            <nav className="flex-1 px-4 space-y-3">
+              {navItems.map(({ key, label, icon: Icon }) => {
+                const active = activeView === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setActiveView(key)}
+                    className={`w-full h-14 rounded-2xl flex items-center gap-4 px-5 text-[15px] font-bold transition-all duration-300 ${
+                      active ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/20 translate-x-1' : `${colors.hover} ${colors.muted} hover:translate-x-1`
+                    }`}
+                    title={!sidebarOpen ? label : undefined}
+                  >
+                    <Icon size={20} className={`shrink-0 ${active ? 'animate-pulse' : ''}`} />
+                    {sidebarOpen && <span className="tracking-wide">{label}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {sidebarOpen && (
+              <div className={`p-4 text-xs ${colors.muted}`}>
+                Derniere synchronisation
+                <div className={colors.text}>
+                  {new Date(data.now).toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        </aside>
 
-        {/* Le Graphique React-ChartJS-2 */}
-        <div className="w-full lg:w-1/2 flex justify-center relative">
-          <div className="w-72 h-72 relative">
-            <Doughnut data={chartData} options={chartOptions} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-              <span className="text-4xl font-bold text-slate-900">{data.utilisateurs}</span>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Clients</span>
+        <main className="flex-1 min-w-0 p-8 lg:p-12 xl:max-w-7xl mx-auto w-full">
+          <header className={`flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-8 rounded-[32px] border ${colors.panel} mb-12`}>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-teal-500 to-emerald-700">
+                {activeView === 'analyse' ? 'Analyse & Insights' : activeView === 'prospects' ? 'Base Prospects' : 'Utilisateurs Inscrits'}
+              </h1>
+              <p className={`text-[15px] mt-2 font-medium ${colors.muted}`}>Tableau de bord de gestion et d'intelligence artificielle</p>
             </div>
-          </div>
-        </div>
+            <div className="flex items-center gap-8">
+              
+              {/* Toggle Switch Light/Dark */}
+              <div className="flex items-center gap-3">
+                <span className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${isDark ? colors.muted : colors.text}`}>Light</span>
+                <button
+                  type="button"
+                  onClick={() => setIsDark(!isDark)}
+                  className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none ${isDark ? 'bg-teal-500' : 'bg-slate-300'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${isDark ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${isDark ? colors.text : colors.muted}`}>Dark</span>
+              </div>
 
+              <div className="w-px h-8 bg-slate-200 dark:bg-slate-800"></div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-6 py-3 rounded-2xl text-[14px] font-bold bg-gradient-to-r from-rose-500 to-red-600 text-white hover:from-rose-600 hover:to-red-700 shadow-lg shadow-rose-500/20 transition-all duration-300 inline-flex items-center gap-2 transform hover:-translate-y-0.5"
+              >
+                <LogOut size={18} strokeWidth={2.5} />
+                Déconnexion
+              </button>
+            </div>
+          </header>
+
+          {activeView === 'analyse' && (
+            <section className="space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                <KpiCard title="Volume de Messages" value={data.total} colors={colors} />
+                <KpiCard title="Clients Uniques" value={data.utilisateurs} colors={colors} />
+                <KpiCard title="Taux de conversion" value={`${data.taux_conversion ?? 0}%`} subtitle={`${data.nb_prospects_convertis ?? 0} converti(s) sur ${data.utilisateurs}`} colors={colors} />
+                <KpiCard title="Msgs avant conversion" value={data.avg_messages_to_convert ?? 'Pas assez'} colors={colors} />
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-8">
+                <div className={`rounded-[32px] border p-10 ${colors.panel}`}>
+                  <div className="flex items-center gap-4 mb-10">
+                    <div className="p-3.5 bg-teal-500/10 rounded-2xl">
+                      <BarChart3 className="text-teal-500" size={28} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-800 dark:text-white">Qualification des Prospects</h2>
+                      <p className={`text-[15px] mt-1.5 ${colors.muted}`}>Répartition par intelligence artificielle.</p>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <LegendRow label="Prospects Chauds" value={`${data.positifs} (${data.p_positif}%)`} color="bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-emerald-500/30" />
+                    <LegendRow label="Prospects Froids" value={`${data.neutres} (${data.p_neutre}%)`} color="bg-gradient-to-r from-slate-400 to-slate-500 shadow-slate-500/30" />
+                    <LegendRow label="Alertes Humaines" value={`${data.negatifs} (${data.p_negatif}%)`} color="bg-gradient-to-r from-rose-400 to-rose-500 shadow-rose-500/30" />
+                    {data.pending > 0 && <LegendRow label="En attente" value={data.pending} color="bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-500/30" />}
+                  </div>
+                </div>
+
+                <div className={`rounded-[32px] border p-10 flex items-center justify-center ${colors.panel}`}>
+                  <div className="relative w-full max-w-[300px] aspect-square">
+                    <Doughnut data={chartData} options={chartOptions} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
+                      <span className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 drop-shadow-sm">{data.utilisateurs}</span>
+                      <span className={`text-[13px] font-bold uppercase tracking-[0.2em] mt-2 ${colors.muted}`}>Clients</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeView === 'prospects' && (
+            <section className={`rounded-[32px] border overflow-hidden ${colors.panel} shadow-lg shadow-slate-200/20 dark:shadow-none`}>
+              <div className={`p-8 border-b ${colors.border} flex flex-col sm:flex-row justify-between items-center gap-6 bg-slate-50/50 dark:bg-slate-900/50`}>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-indigo-500/10 rounded-xl">
+                    <MessageCircle className="text-indigo-500" size={24} />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 dark:text-white">Base Prospects</h2>
+                </div>
+                <ConfigProvider theme={{ algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
+                  <RangePicker
+                    onChange={(dates) => {
+                      if (dates && dates[0] && dates[1]) {
+                        setDateRange([dates[0].toISOString(), dates[1].toISOString()]);
+                      } else {
+                        setDateRange(null);
+                      }
+                    }}
+                  />
+                </ConfigProvider>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className={`${colors.soft} border-b ${colors.border}`}>
+                    <tr>
+                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Numéro</th>
+                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Statut IA</th>
+                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Messages</th>
+                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Dernier message</th>
+                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Premier contact</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {prospects.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className={`px-8 py-16 text-center text-lg ${colors.muted}`}>Aucun prospect dans cette période.</td>
+                      </tr>
+                    ) : prospects.map((prospect, index) => (
+                      <tr key={`${prospect.phone ?? 'prospect'}-${index}`} className={`${colors.rowHover} group cursor-default`}>
+                        <td className="px-8 py-6 font-bold text-[15px]">{prospect.phone ?? '-'}</td>
+                        <td className="px-8 py-6">
+                          <span className={`px-4 py-2 rounded-full text-[13px] font-bold inline-flex items-center gap-2 shadow-sm ${
+                            prospect.statut === 'Chaud' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 
+                            prospect.statut === 'Alerte' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400'
+                          }`}>
+                            <span className={`w-2 h-2 rounded-full ${
+                              prospect.statut === 'Chaud' ? 'bg-emerald-500' : prospect.statut === 'Alerte' ? 'bg-rose-500' : 'bg-slate-500'
+                            }`}></span>
+                            {prospect.statut ?? prospect.sentiment ?? '-'}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-[14px]">
+                              {prospect.nb_messages ?? '-'}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 max-w-[250px] truncate text-slate-500 font-medium text-[15px]">{formatDate(prospect.last_contact)}</td>
+                        <td className="px-8 py-6 text-slate-500 font-medium text-[15px]">{formatDate(prospect.first_contact)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {activeView === 'users' && (
+            <section className={`rounded-[32px] border overflow-hidden ${colors.panel}`}>
+              <UsersList isDark={isDark} />
+            </section>
+          )}
+        </main>
       </div>
-
-      {/* FOOTER */}
-      <div className="mt-8 text-center border-t border-slate-200 pt-6">
-        <p className="text-sm font-medium text-slate-400">
-          Dernière synchronisation : {new Date(data.now).toLocaleString('en-GB', {
-            day: '2-digit', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-          }).replace(',', '')} • WORK.BAKETLI.TECH CRM
-        </p>
-      </div>
-
     </div>
   );
 };
+
+function KpiCard({ title, value, subtitle, colors }: { title: string; value: React.ReactNode; subtitle?: string; colors: any }) {
+  return (
+    <div className={`relative overflow-hidden rounded-[28px] border p-8 ${colors.panel} hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group`}>
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-teal-400 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <p className={`text-[13px] font-bold uppercase tracking-[0.2em] ${colors.muted}`}>{title}</p>
+      <div className="mt-6 text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 drop-shadow-sm">{value}</div>
+      {subtitle && <p className={`mt-4 text-[15px] font-medium ${colors.muted}`}>{subtitle}</p>}
+    </div>
+  );
+}
+
+function LegendRow({ label, value, color }: { label: string; value: React.ReactNode; color: string }) {
+  return (
+    <div className={`flex items-center justify-between gap-4 p-4 rounded-2xl transition-colors duration-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/50`}>
+      <div className="flex items-center gap-4">
+        <span className={`w-4 h-4 rounded-full shadow-sm ${color}`} />
+        <span className="font-bold text-[15px]">{label}</span>
+      </div>
+      <span className="font-black bg-slate-100 dark:bg-slate-800/80 px-4 py-1.5 rounded-xl text-[15px]">{value}</span>
+    </div>
+  );
+}
+
+function formatDate(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export default AdminDashboard;
