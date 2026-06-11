@@ -1,11 +1,12 @@
+import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
 import { removeAssistant, setSelectedAssistant } from '../../page/chat/assistantSlice.ts';
-import { clearMessages } from '../../page/chat/chatSlice.tsx';
+import { clearMessages, clearHistory } from '../../page/chat/chatSlice.tsx';
 import { IoIosChatboxes } from 'react-icons/io';
 import { HistoryOutlined } from '@ant-design/icons';
 import { TbLibraryPhoto } from 'react-icons/tb';
 import { RiCloseLine } from 'react-icons/ri';
-import { message } from 'antd';
+import { message, Drawer, Button, Empty } from 'antd';
 
 const getAssistantDisplay = (assistant: { name: string; role: string }) => {
   const normalizedName = assistant.name.toLowerCase().trim();
@@ -39,14 +40,20 @@ export default function ChatHistory() {
   const active = isDark ? '#1e1e1e' : '#eaf4f3';
   const activeBorder = '#009688';
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const savedHistory = useAppSelector(s => s.chat.savedHistory);
+
   const handleNavClick = (label: string) => {
     if (label === 'Nouvelle discussion') {
       if (selected) {
         dispatch(clearMessages(selected));
         message.success(`Nouvelle discussion démarrée avec ${selected}`);
       }
-    } else {
-      message.info(`Fonctionnalité "${label}" en cours de développement.`);
+    } else if (label === 'Historique') {
+      setHistoryOpen(true);
+    } else if (label === 'Bibliothèque') {
+      setLibraryOpen(true);
     }
   };
 
@@ -163,6 +170,53 @@ export default function ChatHistory() {
           <span style={{ fontSize: 13 }}>{label}</span>
         </button>
       ))}
+
+      {/* ── Drawer Historique ── */}
+      <Drawer
+        title="Historique des discussions"
+        placement="left"
+        onClose={() => setHistoryOpen(false)}
+        open={historyOpen}
+        styles={{ header: { background: isDark ? '#1a1a1a' : '#fff' }, body: { background: isDark ? '#111' : '#fafafa' } }}
+      >
+        {savedHistory.length === 0 ? (
+          <Empty description="Aucun historique pour le moment" />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {savedHistory.map(session => (
+              <div key={session.id} style={{ 
+                padding: 12, background: isDark ? '#1e1e1e' : '#fff', 
+                borderRadius: 8, border: `1px solid ${border}` 
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 600, color: '#009688', fontSize: 13 }}>{session.assistantName}</span>
+                  <span style={{ fontSize: 11, color: muted }}>{session.date}</span>
+                </div>
+                <p style={{ fontSize: 13, color: text, margin: 0, opacity: 0.8 }}>
+                  {session.preview}
+                </p>
+                <div style={{ fontSize: 11, color: muted, marginTop: 8 }}>
+                  {session.messages.length} message(s)
+                </div>
+              </div>
+            ))}
+            <Button danger onClick={() => dispatch(clearHistory())} style={{ marginTop: 16 }}>
+              Effacer tout l'historique
+            </Button>
+          </div>
+        )}
+      </Drawer>
+
+      {/* ── Drawer Bibliothèque ── */}
+      <Drawer
+        title="Bibliothèque des fichiers"
+        placement="left"
+        onClose={() => setLibraryOpen(false)}
+        open={libraryOpen}
+        styles={{ header: { background: isDark ? '#1a1a1a' : '#fff' }, body: { background: isDark ? '#111' : '#fafafa' } }}
+      >
+        <Empty description="Aucun fichier sauvegardé. Vos pièces jointes (fichiers, liens) apparaîtront ici." />
+      </Drawer>
     </div>
   );
 }

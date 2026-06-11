@@ -5,6 +5,14 @@ export type Message = {
   text: string;
 };
 
+export interface SavedSession {
+  id: string;
+  assistantName: string;
+  date: string;
+  preview: string;
+  messages: Message[];
+}
+
 export interface SendMessageArgs {
   message: string;
   assistantName: string;
@@ -67,13 +75,22 @@ export const sendMessageToBot = createAsyncThunk<
 
 interface ChatState {
   messagesByAssistant: Record<string, Message[]>;
+  savedHistory:        SavedSession[];
   pendingUser:         string | null;
   status:              'idle' | 'loading' | 'succeeded' | 'failed';
   error:               string | null;
 }
 
+const loadHistory = (): SavedSession[] => {
+  try {
+    const s = localStorage.getItem('wagan_history');
+    return s ? JSON.parse(s) : [];
+  } catch (e) { return []; }
+};
+
 const initialState: ChatState = {
   messagesByAssistant: {},
+  savedHistory:        loadHistory(),
   pendingUser:         null,
   status:              'idle',
   error:               null,
@@ -88,12 +105,31 @@ const chatSlice = createSlice({
       state.status = 'idle';
     },
     clearMessages(state, action: { payload: string }) {
-      // payload = assistantName
-      state.messagesByAssistant[action.payload] = [];
+      const assistantName = action.payload;
+      const msgs = state.messagesByAssistant[assistantName] || [];
+      
+      if (msgs.length > 0) {
+        // Sauvegarder dans l'historique avant d'effacer
+        const session: SavedSession = {
+          id: Date.now().toString(),
+          assistantName,
+          date: new Date().toLocaleString(),
+          preview: msgs[0].text.substring(0, 50) + '...',
+          messages: [...msgs]
+        };
+        state.savedHistory.unshift(session);
+        localStorage.setItem('wagan_history', JSON.stringify(state.savedHistory));
+      }
+
+      state.messagesByAssistant[assistantName] = [];
       state.pendingUser = null;
       state.status      = 'idle';
       state.error       = null;
     },
+    clearHistory(state) {
+      state.savedHistory = [];
+      localStorage.removeItem('wagan_history');
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -140,5 +176,5 @@ const chatSlice = createSlice({
   },
 });
 
-export const { clearError, clearMessages } = chatSlice.actions;
+export const { clearError, clearMessages, clearHistory } = chatSlice.actions;
 export default chatSlice.reducer;
