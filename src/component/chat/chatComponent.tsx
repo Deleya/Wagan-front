@@ -17,7 +17,7 @@ import { IoLink }              from 'react-icons/io5';
 import { MdOutlineAttachFile } from 'react-icons/md';
 import { FiCopy, FiCheck, FiLogOut, FiLogIn }     from 'react-icons/fi';
 import { LuSendHorizontal }    from 'react-icons/lu';
-import { RiMenuFoldLine, RiMenuUnfoldLine } from 'react-icons/ri';
+import { RiMenuFoldLine, RiMenuUnfoldLine, RiCloseLine } from 'react-icons/ri';
 import { FaUserCircle } from 'react-icons/fa';
 import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
@@ -41,7 +41,7 @@ function TypingDots() {
 }
 
 /* ─── Empty state ─── */
-function EmptyState({ c }: { c: Colors }) {
+function EmptyState({ c, assistantName }: { c: Colors, assistantName?: string | null }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -55,7 +55,7 @@ function EmptyState({ c }: { c: Colors }) {
       </div>
       <div style={{ textAlign: 'center' }}>
         <h2 style={{ fontSize: 22, fontWeight: 600, color: c.text, marginBottom: 6, letterSpacing: '-0.3px' }}>
-          Comment puis-je t'aider ?
+          {assistantName ? `Discussion avec ${assistantName}` : "Comment puis-je t'aider ?"}
         </h2>
         <p style={{ fontSize: 14, color: c.muted }}>
           Pose une question, partage du code ou décris ton problème.
@@ -98,22 +98,33 @@ function getColors(isDark: boolean): Colors {
    COMPOSANT PRINCIPAL
 ══════════════════════════════════════════════════════ */
 export default function ChatComponent() {
-  const [input,       setInput]       = useState('');
-  const [isModalOpen, setModalOpen]   = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [copiedIdx,   setCopiedIdx]   = useState<number | null>(null);
+  const [input,         setInput]         = useState('');
+  const [isModalOpen,   setModalOpen]     = useState(false);
+  const [sidebarOpen,   setSidebarOpen]   = useState(true);
+  const [copiedIdx,     setCopiedIdx]     = useState<number | null>(null);
+
+  // States pour pièces jointes
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [githubLink,    setGithubLink]    = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
 
   const navigate    = useNavigate();
   const dispatch    = useAppDispatch();
   const bottomRef   = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isDark           = useAppSelector(s => s.theme.darkMode);
   const assistantsActifs = useAppSelector(s => s.assistant.assistants);
-  const { messages, status } = useAppSelector(s => s.chat);
+  const selectedAssistant = useAppSelector(s => s.assistant.selectedAssistant);
+  
+  const { messagesByAssistant, status, pendingUser } = useAppSelector(s => s.chat);
   const { isAuthenticated, isAdmin, user } = useAppSelector(s => s.auth);
+  
   const allAdded = assistantsActifs.length >= ASSISTANTS.length;
   const isLoading = status === 'loading';
+
+  const messages = selectedAssistant ? (messagesByAssistant[selectedAssistant] || []) : [];
 
   const c = getColors(isDark);
 
@@ -134,7 +145,7 @@ export default function ChatComponent() {
   /* ── Auto-scroll vers le bas ── */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, status]);
+  }, [messages, status, pendingUser]);
 
   /* ── Auto-resize textarea ── */
   useEffect(() => {
@@ -145,9 +156,21 @@ export default function ChatComponent() {
   }, [input]);
 
   const handleSend = () => {
-    if (!input.trim() || isLoading) return;
-    dispatch(sendMessageToBot(input.trim()));
+    if (!selectedAssistant) return;
+    if (!input.trim() && selectedFiles.length === 0 && !githubLink) return;
+    if (isLoading) return;
+
+    dispatch(sendMessageToBot({
+      message: input.trim(),
+      assistantName: selectedAssistant,
+      githubLink: githubLink || undefined,
+      files: selectedFiles.length > 0 ? selectedFiles : undefined
+    }));
+    
     setInput('');
+    setSelectedFiles([]);
+    setGithubLink('');
+    setShowLinkInput(false);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
@@ -292,7 +315,7 @@ export default function ChatComponent() {
         <div className="scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
           <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28 }}>
 
-            {messages.length === 0 && !isLoading && <EmptyState c={c} />}
+            {messages.length === 0 && !isLoading && !pendingUser && <EmptyState c={c} assistantName={selectedAssistant} />}
 
             {messages.map((msg, idx) => {
 
@@ -414,6 +437,63 @@ export default function ChatComponent() {
         }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
+            {/* Badges Fichiers & Lien */}
+            {(selectedFiles.length > 0 || githubLink) && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                {selectedFiles.map((f, i) => (
+                  <div key={i} style={{
+                    background: c.surfaceAlt, padding: '4px 10px', borderRadius: 12,
+                    fontSize: 12, color: c.text, display: 'flex', alignItems: 'center', gap: 6,
+                    border: `1px solid ${c.border}`
+                  }}>
+                    📎 {f.name}
+                    <RiCloseLine 
+                      cursor="pointer" 
+                      onClick={() => setSelectedFiles(files => files.filter((_, idx) => idx !== i))}
+                    />
+                  </div>
+                ))}
+                {githubLink && (
+                  <div style={{
+                    background: '#eaf4f3', padding: '4px 10px', borderRadius: 12,
+                    fontSize: 12, color: '#009688', display: 'flex', alignItems: 'center', gap: 6,
+                    border: '1px solid #009688'
+                  }}>
+                    🔗 {githubLink}
+                    <RiCloseLine 
+                      cursor="pointer" 
+                      onClick={() => setGithubLink('')}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Input Link Overlay */}
+            {showLinkInput && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input 
+                  type="text" 
+                  placeholder="Lien GitHub complet (ex: https://github.com/...)"
+                  value={githubLink}
+                  onChange={e => setGithubLink(e.target.value)}
+                  style={{
+                    flex: 1, background: c.inputBg, border: `1px solid ${c.border}`, 
+                    padding: '8px 12px', borderRadius: 8, color: c.text, outline: 'none'
+                  }}
+                />
+                <button 
+                  onClick={() => setShowLinkInput(false)}
+                  style={{
+                    background: '#009688', color: '#fff', border: 'none', 
+                    padding: '8px 16px', borderRadius: 8, cursor: 'pointer'
+                  }}
+                >
+                  OK
+                </button>
+              </div>
+            )}
+
             <div
               className="chat-input-wrap"
               style={{
@@ -453,6 +533,7 @@ export default function ChatComponent() {
                     className={`toolbar-btn${isDark ? ' dark' : ''}`}
                     style={{ color: c.muted }}
                     title="Ajouter un lien"
+                    onClick={() => setShowLinkInput(v => !v)}
                   >
                     <IoLink size={17} />
                   </button>
@@ -460,9 +541,22 @@ export default function ChatComponent() {
                     className={`toolbar-btn${isDark ? ' dark' : ''}`}
                     style={{ color: c.muted }}
                     title="Joindre un fichier"
+                    onClick={() => fileInputRef.current?.click()}
                   >
                     <MdOutlineAttachFile size={17} />
                   </button>
+                  <input 
+                    type="file" 
+                    multiple 
+                    ref={fileInputRef} 
+                    style={{ display: 'none' }}
+                    onChange={e => {
+                      if (e.target.files) {
+                        setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                      }
+                      e.target.value = '';
+                    }}
+                  />
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -470,11 +564,11 @@ export default function ChatComponent() {
                     <span style={{ fontSize: 11, color: c.muted }}>{input.length}</span>
                   )}
                   <button
-                    className={`send-btn ${input.trim() && !isLoading ? 'active' : 'inactive'}`}
+                    className={`send-btn ${(input.trim() || selectedFiles.length || githubLink) && !isLoading ? 'active' : 'inactive'}`}
                     onClick={handleSend}
-                    disabled={!input.trim() || isLoading}
+                    disabled={(!input.trim() && !selectedFiles.length && !githubLink) || isLoading}
                     style={
-                      !input.trim() || isLoading
+                      (!input.trim() && !selectedFiles.length && !githubLink) || isLoading
                         ? { background: c.surfaceAlt, color: c.muted }
                         : {}
                     }

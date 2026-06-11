@@ -1,10 +1,11 @@
-import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
-import { removeAssistant } from '../../page/chat/assistantSlice.ts';
+import { removeAssistant, setSelectedAssistant } from '../../page/chat/assistantSlice.ts';
+import { clearMessages } from '../../page/chat/chatSlice.tsx';
 import { IoIosChatboxes } from 'react-icons/io';
 import { HistoryOutlined } from '@ant-design/icons';
 import { TbLibraryPhoto } from 'react-icons/tb';
 import { RiCloseLine } from 'react-icons/ri';
+import { message } from 'antd';
 
 const getAssistantDisplay = (assistant: { name: string; role: string }) => {
   const normalizedName = assistant.name.toLowerCase().trim();
@@ -29,15 +30,25 @@ const getAssistantDisplay = (assistant: { name: string; role: string }) => {
 export default function ChatHistory() {
   const isDark     = useAppSelector(s => s.theme.darkMode);
   const assistants = useAppSelector(s => s.assistant.assistants);
+  const selected   = useAppSelector(s => s.assistant.selectedAssistant);
   const dispatch   = useAppDispatch();
-
-  const [selected, setSelected] = useState<string | null>(assistants[0]?.name ?? null);
 
   const text   = isDark ? '#ececec' : '#111';
   const muted  = isDark ? '#666'    : '#999';
   const border = isDark ? '#222'    : '#ebebeb';
   const active = isDark ? '#1e1e1e' : '#eaf4f3';
   const activeBorder = '#009688';
+
+  const handleNavClick = (label: string) => {
+    if (label === 'Nouvelle discussion') {
+      if (selected) {
+        dispatch(clearMessages(selected));
+        message.success(`Nouvelle discussion démarrée avec ${selected}`);
+      }
+    } else {
+      message.info(`Fonctionnalité "${label}" en cours de développement.`);
+    }
+  };
 
   const navItems = [
     { icon: <IoIosChatboxes size={14} />, label: 'Nouvelle discussion' },
@@ -66,7 +77,7 @@ export default function ChatHistory() {
               <div
                 key={i}
                 className={`assistant-card${isDark ? ' dark' : ''}`}
-                onClick={() => setSelected(a.name)}
+                onClick={() => dispatch(setSelectedAssistant(a.name))}
                 style={{
                   background: isActive ? active : 'transparent',
                   border: `1px solid ${isActive ? activeBorder : 'transparent'}`,
@@ -100,10 +111,6 @@ export default function ChatHistory() {
                     onClick={e => {
                       e.stopPropagation();
                       dispatch(removeAssistant(a));
-                      if (a.name === selected) {
-                        const rest = assistants.filter(x => x.name !== a.name);
-                        setSelected(rest[0]?.name ?? null);
-                      }
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -146,6 +153,7 @@ export default function ChatHistory() {
       {navItems.map(({ icon, label }) => (
         <button
           key={label}
+          onClick={() => handleNavClick(label)}
           className={`nav-btn${isDark ? ' dark' : ''}`}
           style={{ color: muted }}
           onMouseEnter={e => (e.currentTarget.style.color = text)}

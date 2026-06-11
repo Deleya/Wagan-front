@@ -5,38 +5,51 @@ export type Message = {
   text: string;
 };
 
-/* ─────────────────────────────────────────────────────────────
-   Thunk : envoie le message et récupère la réponse du bot
-   L'URL est résolue via le proxy Vite en dev (/api/...)
-   ou via la variable d'environnement VITE_API_URL en prod.
-───────────────────────────────────────────────────────────── */
+export interface SendMessageArgs {
+  message: string;
+  assistantName: string;
+  githubLink?: string;
+  files?: File[];
+}
+
 export const sendMessageToBot = createAsyncThunk<
-  string,          // valeur retournée (réponse bot)
-  string,          // argument (message user)
+  string,
+  SendMessageArgs,
   { rejectValue: string }
 >(
   'chat/sendMessageToBot',
-  async (userMessage, { rejectWithValue }) => {
+  async (args, { rejectWithValue }) => {
     const base = import.meta.env.VITE_API_URL ?? '';
     const url  = `${base}/api/bot/`;
 
     try {
+      const formData = new FormData();
+      formData.append('message', args.message);
+      // On peut ajouter le nom de l'assistant pour le backend si besoin
+      formData.append('assistant', args.assistantName);
+      
+      if (args.githubLink) {
+        formData.append('github', args.githubLink);
+      }
+      
+      if (args.files && args.files.length > 0) {
+        args.files.forEach(f => {
+          formData.append('images', f);
+        });
+      }
+
       const res = await fetch(url, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ message: userMessage }),
+        body:    formData, // fetch mettra automatiquement le bon Content-Type multipart/form-data
       });
 
-      // Lire le corps même si le statut est une erreur
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // Le backend renvoie {"error": "..."} sur les 4xx/5xx
         const msg = data?.error ?? data?.detail ?? `Erreur serveur (${res.status})`;
         return rejectWithValue(msg);
       }
 
-      // Succès : data.response contient la réponse du bot
       const botText = data?.response;
       if (!botText) {
         return rejectWithValue('Réponse vide reçue du serveur.');
@@ -45,7 +58,6 @@ export const sendMessageToBot = createAsyncThunk<
       return botText as string;
 
     } catch (err: any) {
-      // Erreur réseau (pas de connexion, CORS bloqué, timeout…)
       return rejectWithValue(
         err?.message ?? 'Impossible de joindre le serveur. Vérifiez votre connexion.'
       );
@@ -53,21 +65,18 @@ export const sendMessageToBot = createAsyncThunk<
   }
 );
 
-/* ─────────────────────────────────────────────────────────────
-   Slice
-───────────────────────────────────────────────────────────── */
 interface ChatState {
-  messages:      Message[];
-  pendingUser:   string | null;   // message en attente d'être confirmé
-  status:        'idle' | 'loading' | 'succeeded' | 'failed';
-  error:         string | null;
+  messagesByAssistant: Record<string, Message[]>;
+  pendingUser:         string | null;
+  status:              'idle' | 'loading' | 'succeeded' | 'failed';
+  error:               string | null;
 }
 
 const initialState: ChatState = {
-  messages:    [],
-  pendingUser: null,
-  status:      'idle',
-  error:       null,
+  messagesByAssistant: {},
+  pendingUser:         null,
+  status:              'idle',
+  error:               null,
 };
 
 const chatSlice = createSlice({
@@ -78,8 +87,9 @@ const chatSlice = createSlice({
       state.error  = null;
       state.status = 'idle';
     },
-    clearMessages(state) {
-      state.messages    = [];
+    clearMessages(state, action: { payload: string }) {
+      // payload = assistantName
+      state.messagesByAssistant[action.payload] = [];
       state.pendingUser = null;
       state.status      = 'idle';
       state.error       = null;
@@ -87,31 +97,42 @@ const chatSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-
-      /* ── Envoi en cours ── */
       .addCase(sendMessageToBot.pending, (state, action) => {
         state.status      = 'loading';
         state.error       = null;
-        // On affiche immédiatement le message utilisateur
-        state.pendingUser = action.meta.arg;
-        state.messages.push({ role: 'user', text: action.meta.arg });
-      })
+        const { assistantName, message, githubLink, files } = action.meta.arg;
+        
+        let textToShow = message;
+        if (githubLink) textToShow += `\n\n🔗 ${githubLink}`;
+        if (files && files.length > 0) textToShow += `\n\n📎 ${files.length} fichier(s) joint(s)`;
 
-      /* ── Succès ── */
+        state.pendingUser = textToShow;
+        
+        if (!state.messagesByAssistant[assistantName]) {
+          state.messagesByAssistant[assistantName] = [];
+        }
+        state.messagesByAssistant[assistantName].push({ role: 'user', text: textToShow });
+      })
       .addCase(sendMessageToBot.fulfilled, (state, action) => {
         state.status      = 'succeeded';
         state.pendingUser = null;
-        state.messages.push({ role: 'bot', text: action.payload });
+        const { assistantName } = action.meta.arg;
+        if (!state.messagesByAssistant[assistantName]) {
+          state.messagesByAssistant[assistantName] = [];
+        }
+        state.messagesByAssistant[assistantName].push({ role: 'bot', text: action.payload });
       })
-
-      /* ── Échec ── */
       .addCase(sendMessageToBot.rejected, (state, action) => {
         state.status      = 'failed';
         state.pendingUser = null;
+        const { assistantName } = action.meta.arg;
         const errMsg = action.payload ?? action.error.message ?? 'Une erreur est survenue.';
         state.error  = errMsg;
-        // Afficher l'erreur comme message inline dans le chat
-        state.messages.push({
+        
+        if (!state.messagesByAssistant[assistantName]) {
+          state.messagesByAssistant[assistantName] = [];
+        }
+        state.messagesByAssistant[assistantName].push({
           role: 'error',
           text: `⚠️ ${errMsg}`,
         });

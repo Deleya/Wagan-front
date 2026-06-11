@@ -47,10 +47,12 @@ localStorage.setItem('assistants', JSON.stringify(savedAssistants));
 
 interface AssistantState {
   assistants: Assistant[];
+  selectedAssistant: string | null;
 }
 
 const initialState: AssistantState = {
   assistants: savedAssistants,
+  selectedAssistant: savedAssistants[0]?.name ?? null,
 };
 
 const assistantSlice = createSlice({
@@ -77,13 +79,16 @@ const assistantSlice = createSlice({
       state.assistants = state.assistants.filter(
         (a) => a.name !== action.payload.name
       );
+      if (state.selectedAssistant === action.payload.name) {
+        state.selectedAssistant = state.assistants[0]?.name ?? null;
+      }
       localStorage.setItem('assistants', JSON.stringify(state.assistants));
     },
-
-
-
+    setSelectedAssistant: (state, action) => {
+      state.selectedAssistant = action.payload;
+    },
   },
 });
 
-export const { addAssistant, removeAssistant } = assistantSlice.actions;
+export const { addAssistant, removeAssistant, setSelectedAssistant } = assistantSlice.actions;
 export default assistantSlice.reducer;
