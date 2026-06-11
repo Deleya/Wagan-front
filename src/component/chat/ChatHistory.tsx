@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../page/hooks/hooks.tsx';
 import { removeAssistant, setSelectedAssistant } from '../../page/chat/assistantSlice.ts';
-import { clearMessages, clearHistory } from '../../page/chat/chatSlice.tsx';
+import { clearMessages, clearHistory, restoreHistory } from '../../page/chat/chatSlice.tsx';
+import type { SavedSession } from '../../page/chat/chatSlice.tsx';
 import { IoIosChatboxes } from 'react-icons/io';
 import { HistoryOutlined } from '@ant-design/icons';
 import { TbLibraryPhoto } from 'react-icons/tb';
@@ -55,6 +56,13 @@ export default function ChatHistory() {
     } else if (label === 'Bibliothèque') {
       setLibraryOpen(true);
     }
+  };
+
+  const handleRestoreSession = (session: SavedSession) => {
+    dispatch(restoreHistory(session.id));
+    dispatch(setSelectedAssistant(session.assistantName));
+    setHistoryOpen(false);
+    message.success(`Historique restauré pour ${session.assistantName}`);
   };
 
   const navItems = [
@@ -184,10 +192,17 @@ export default function ChatHistory() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {savedHistory.map(session => (
-              <div key={session.id} style={{ 
-                padding: 12, background: isDark ? '#1e1e1e' : '#fff', 
-                borderRadius: 8, border: `1px solid ${border}` 
-              }}>
+              <div 
+                key={session.id} 
+                onClick={() => handleRestoreSession(session)}
+                style={{ 
+                  padding: 12, background: isDark ? '#1e1e1e' : '#fff', 
+                  borderRadius: 8, border: `1px solid ${border}`,
+                  cursor: 'pointer', transition: 'box-shadow 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)')}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontWeight: 600, color: '#009688', fontSize: 13 }}>{session.assistantName}</span>
                   <span style={{ fontSize: 11, color: muted }}>{session.date}</span>
