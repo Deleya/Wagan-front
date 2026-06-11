@@ -14,7 +14,6 @@ export default function ChatNavbar() {
   }, [isDark]);
 
   const border = isDark ? '#222' : '#ebebeb';
-  const muted  = isDark ? '#666' : '#999';
   const bg     = isDark ? '#1a1a1a' : '#f0f0f0';
   const text   = isDark ? '#ccc' : '#555';
 

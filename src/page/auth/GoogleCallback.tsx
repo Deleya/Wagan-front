@@ -4,6 +4,18 @@ import { useAppDispatch } from '../hooks/hooks';
 import { setTokens, fetchUserProfile } from './authSlice';
 import { Spin, Alert, Button, message } from 'antd';
 
+/**
+ * Ce composant reçoit les tokens JWT directement dans l'URL query params,
+ * car le callback Google est maintenant géré côté backend Django.
+ * 
+ * Flux :
+ * 1. Login.tsx → GET /api/auth/o/google-oauth2/?redirect_uri=http://localhost:8000/api/auth/google/callback/
+ * 2. Utilisateur s'authentifie sur Google
+ * 3. Google → GET http://localhost:8000/api/auth/google/callback/?code=...
+ * 4. Django échange le code, génère JWT, redirige vers :
+ *    http://localhost:5173/auth/google?access=TOKEN&refresh=TOKEN
+ * 5. Ce composant lit access + refresh depuis l'URL
+ */
 const GoogleCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
@@ -12,73 +24,52 @@ const GoogleCallback: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
-    const nextUrl = searchParams.get('next');
+    const access = searchParams.get('access');
+    const refresh = searchParams.get('refresh');
+    const error = searchParams.get('error');
 
-    if (code && state) {
-      const loginWithGoogle = async () => {
-        try {
-          const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-          
-          const res = await fetch(`${base}/api/auth/o/google-oauth2/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              code,
-              state,
-            }).toString(),
-          });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || 'Erreur lors de la connexion Google. Vérifiez que votre secret client est correct dans le fichier .env.');
-          }
-
-          const data = await res.json();
-          
-          dispatch(setTokens({ access: data.access, refresh: data.refresh }));
-          const profile = await dispatch(fetchUserProfile()).unwrap();
-          
-          setLoading(false);
-          if (profile.is_staff || profile.is_superuser) {
-            message.success('Connexion Administrateur réussie !');
-            if (nextUrl && nextUrl.startsWith('http')) {
-              window.location.href = nextUrl;
-              return;
-            }
-            const bridgeRes = await fetch(`${base}/api/admin/dashboard/session/`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `JWT ${data.access}`,
-              },
-            });
-            if (bridgeRes.ok) {
-              const bridgeData = await bridgeRes.json();
-              window.location.href = bridgeData.url;
-              return;
-            }
-            navigate('/admin/dashboard');
-          } else {
-            message.success('Connexion Google réussie !');
-            navigate('/chat');
-          }
-        } catch (err: any) {
-          console.error('Erreur Callback Google:', err);
-          setErrorMsg(err.message || 'Une erreur est survenue lors de la connexion avec Google');
-          setLoading(false);
+    const handleCallback = async () => {
+      try {
+        // Cas d'erreur renvoyée par le backend Django
+        if (error) {
+          const errorMessages: Record<string, string> = {
+            access_denied: "Accès refusé par Google.",
+            token_exchange_failed: "Impossible d'échanger le code Google. Vérifiez vos clés API.",
+            userinfo_failed: "Impossible de récupérer votre profil Google.",
+            no_email: "Votre compte Google ne fournit pas d'adresse email.",
+            network_error: "Erreur réseau lors de la connexion Google.",
+            server_error: "Erreur serveur. Veuillez réessayer.",
+          };
+          throw new Error(errorMessages[error] || `Erreur: ${error}`);
         }
-      };
 
-      loginWithGoogle();
-    } else {
-      setErrorMsg('Paramètres de connexion Google manquants (code ou state absent)');
-      setLoading(false);
-    }
-  }, [searchParams, dispatch, navigate]);
+        // Cas normal : tokens reçus depuis Django
+        if (!access || !refresh) {
+          throw new Error("Paramètres de connexion manquants (tokens absents).");
+        }
+
+        // Stocker les tokens et charger le profil
+        dispatch(setTokens({ access, refresh }));
+        const profile = await dispatch(fetchUserProfile()).unwrap();
+
+        setLoading(false);
+
+        if (profile.is_staff || profile.is_superuser) {
+          message.success('Connexion Administrateur réussie !');
+          navigate('/admin/dashboard');
+        } else {
+          message.success('Connexion Google réussie !');
+          navigate('/chat');
+        }
+      } catch (err: any) {
+        console.error('Erreur Callback Google:', err);
+        setErrorMsg(err.message || 'Une erreur est survenue lors de la connexion avec Google');
+        setLoading(false);
+      }
+    };
+
+    handleCallback();
+  }, []); // volontairement sans deps pour éviter le double appel React StrictMode
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">

@@ -163,3 +163,48 @@ body {
 .add-assistant-btn:hover { background: rgba(0,150,136,0.07); }
 .add-assistant-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .add-assistant-btn:disabled:hover { background: transparent; }
+
+/* Admin dashboard readability */
+.admin-dashboard .ant-table,
+.admin-dashboard .ant-pagination,
+.admin-dashboard .ant-select,
+.admin-dashboard .ant-picker,
+.admin-dashboard .ant-btn {
+  font-size: 14px;
+}
+
+.admin-dashboard .ant-table-thead > tr > th {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-dashboard .ant-table-tbody > tr > td {
+  font-size: 15px;
+}
+
+.admin-dashboard .ant-table-cell,
+.admin-dashboard .ant-select-selector,
+.admin-dashboard .ant-picker {
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard {
+    padding: 12px !important;
+  }
+
+  .admin-shell {
+    gap: 12px !important;
+    min-height: auto !important;
+  }
+
+  .admin-sidebar-open {
+    width: 232px !important;
+    flex-basis: 232px !important;
+  }
+
+  .admin-sidebar-collapsed {
+    width: 52px !important;
+    flex-basis: 52px !important;
+  }
+}

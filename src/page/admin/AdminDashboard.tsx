@@ -82,23 +82,25 @@ const AdminDashboard: React.FC = () => {
   }, [dateRange]);
 
   const colors = isDark ? {
-    page: 'bg-[#0B1120] text-slate-100',
-    panel: 'bg-[#1e293b]/70 backdrop-blur-3xl border-[#334155] shadow-2xl shadow-black/40',
-    soft: 'bg-slate-800/40',
+    page: 'bg-slate-950 text-slate-100',
+    panel: 'bg-slate-900 border-slate-800 shadow-sm',
+    soft: 'bg-slate-800/50',
     text: 'text-slate-100',
     muted: 'text-slate-400',
-    border: 'border-[#334155]',
-    hover: 'hover:bg-slate-800/80 transition-colors',
-    rowHover: 'hover:bg-slate-800/30 transition-colors duration-200',
+    border: 'border-slate-800',
+    hover: 'hover:bg-slate-800 transition-colors',
+    rowHover: 'hover:bg-slate-800/50 transition-colors',
+    badgeBg: 'bg-slate-800',
   } : {
-    page: 'bg-[#f8fafc] text-slate-800',
-    panel: 'bg-white border-slate-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]',
+    page: 'bg-slate-50 text-slate-900',
+    panel: 'bg-white border-slate-200 shadow-sm',
     soft: 'bg-slate-50',
-    text: 'text-slate-800',
+    text: 'text-slate-900',
     muted: 'text-slate-500',
-    border: 'border-slate-100',
-    hover: 'hover:bg-slate-50 transition-colors',
-    rowHover: 'hover:bg-slate-50/50 transition-colors duration-200',
+    border: 'border-slate-200',
+    hover: 'hover:bg-slate-100 transition-colors',
+    rowHover: 'hover:bg-slate-50 transition-colors',
+    badgeBg: 'bg-slate-100',
   };
 
   const prospects = data?.prospects_list ?? [];
@@ -162,8 +164,8 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between px-6 pb-6 mb-4 border-b border-inherit">
               {sidebarOpen && (
                 <div>
-                  <p className="text-base font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-teal-500 to-emerald-600">WAGAN CRM</p>
-                  <p className={`text-[11px] font-medium tracking-widest mt-1 ${colors.muted}`}>WORK.BAKETLI</p>
+                  <p className={`text-base font-extrabold tracking-wider ${colors.text}`}>WAGAN CRM</p>
+                  <p className={`text-[11px] font-semibold tracking-widest mt-1 ${colors.muted}`}>WORK.BAKETLI</p>
                 </div>
               )}
               <button
@@ -184,13 +186,13 @@ const AdminDashboard: React.FC = () => {
                     key={key}
                     type="button"
                     onClick={() => setActiveView(key)}
-                    className={`w-full h-14 rounded-2xl flex items-center gap-4 px-5 text-[15px] font-bold transition-all duration-300 ${
-                      active ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/20 translate-x-1' : `${colors.hover} ${colors.muted} hover:translate-x-1`
+                    className={`w-full h-12 rounded-xl flex items-center gap-4 px-4 text-[14px] font-semibold transition-all duration-200 ${
+                      active ? (isDark ? 'bg-teal-500 text-white' : 'bg-slate-900 text-white') + ' shadow-sm' : `${colors.hover} ${colors.text}`
                     }`}
                     title={!sidebarOpen ? label : undefined}
                   >
-                    <Icon size={20} className={`shrink-0 ${active ? 'animate-pulse' : ''}`} />
-                    {sidebarOpen && <span className="tracking-wide">{label}</span>}
+                    <Icon size={18} className="shrink-0" />
+                    {sidebarOpen && <span>{label}</span>}
                   </button>
                 );
               })}
@@ -214,9 +216,9 @@ const AdminDashboard: React.FC = () => {
         </aside>
 
         <main className="flex-1 min-w-0 p-8 lg:p-12 xl:max-w-7xl mx-auto w-full">
-          <header className={`flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-8 rounded-[32px] border ${colors.panel} mb-12`}>
+          <header className={`flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-8 rounded-2xl border ${colors.panel} mb-8`}>
             <div>
-              <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-teal-500 to-emerald-700">
+              <h1 className={`text-3xl font-extrabold tracking-tight ${colors.text}`}>
                 {activeView === 'analyse' ? 'Analyse & Insights' : activeView === 'prospects' ? 'Base Prospects' : 'Utilisateurs Inscrits'}
               </h1>
               <p className={`text-[15px] mt-2 font-medium ${colors.muted}`}>Tableau de bord de gestion et d'intelligence artificielle</p>
@@ -236,14 +238,14 @@ const AdminDashboard: React.FC = () => {
                 <span className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${isDark ? colors.text : colors.muted}`}>Dark</span>
               </div>
 
-              <div className="w-px h-8 bg-slate-200 dark:bg-slate-800"></div>
+              <div className={`w-px h-8 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
 
               <button
                 type="button"
                 onClick={handleLogout}
-                className="px-6 py-3 rounded-2xl text-[14px] font-bold bg-gradient-to-r from-rose-500 to-red-600 text-white hover:from-rose-600 hover:to-red-700 shadow-lg shadow-rose-500/20 transition-all duration-300 inline-flex items-center gap-2 transform hover:-translate-y-0.5"
+                className="px-5 py-2.5 rounded-xl text-[14px] font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all inline-flex items-center gap-2"
               >
-                <LogOut size={18} strokeWidth={2.5} />
+                <LogOut size={16} strokeWidth={2} />
                 Déconnexion
               </button>
             </div>
@@ -259,30 +261,30 @@ const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-8">
-                <div className={`rounded-[32px] border p-10 ${colors.panel}`}>
-                  <div className="flex items-center gap-4 mb-10">
-                    <div className="p-3.5 bg-teal-500/10 rounded-2xl">
-                      <BarChart3 className="text-teal-500" size={28} />
+                <div className={`rounded-2xl border p-8 ${colors.panel}`}>
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className={`p-3 rounded-xl ${colors.badgeBg}`}>
+                      <BarChart3 className={colors.text} size={24} />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-black text-slate-800 dark:text-white">Qualification des Prospects</h2>
-                      <p className={`text-[15px] mt-1.5 ${colors.muted}`}>Répartition par intelligence artificielle.</p>
+                      <h2 className={`text-xl font-bold ${colors.text}`}>Qualification des Prospects</h2>
+                      <p className={`text-sm mt-1 ${colors.muted}`}>Répartition par intelligence artificielle.</p>
                     </div>
                   </div>
                   <div className="space-y-6">
-                    <LegendRow label="Prospects Chauds" value={`${data.positifs} (${data.p_positif}%)`} color="bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-emerald-500/30" />
-                    <LegendRow label="Prospects Froids" value={`${data.neutres} (${data.p_neutre}%)`} color="bg-gradient-to-r from-slate-400 to-slate-500 shadow-slate-500/30" />
-                    <LegendRow label="Alertes Humaines" value={`${data.negatifs} (${data.p_negatif}%)`} color="bg-gradient-to-r from-rose-400 to-rose-500 shadow-rose-500/30" />
-                    {data.pending > 0 && <LegendRow label="En attente" value={data.pending} color="bg-gradient-to-r from-amber-400 to-amber-500 shadow-amber-500/30" />}
+                    <LegendRow label="Prospects Chauds" value={`${data.positifs} (${data.p_positif}%)`} color="bg-emerald-500" colors={colors} />
+                    <LegendRow label="Prospects Froids" value={`${data.neutres} (${data.p_neutre}%)`} color="bg-slate-500" colors={colors} />
+                    <LegendRow label="Alertes Humaines" value={`${data.negatifs} (${data.p_negatif}%)`} color="bg-rose-500" colors={colors} />
+                    {data.pending > 0 && <LegendRow label="En attente" value={data.pending} color="bg-amber-500" colors={colors} />}
                   </div>
                 </div>
 
-                <div className={`rounded-[32px] border p-10 flex items-center justify-center ${colors.panel}`}>
-                  <div className="relative w-full max-w-[300px] aspect-square">
+                <div className={`rounded-2xl border p-8 flex items-center justify-center ${colors.panel}`}>
+                  <div className="relative w-full max-w-[280px] aspect-square">
                     <Doughnut data={chartData} options={chartOptions} />
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-                      <span className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 drop-shadow-sm">{data.utilisateurs}</span>
-                      <span className={`text-[13px] font-bold uppercase tracking-[0.2em] mt-2 ${colors.muted}`}>Clients</span>
+                      <span className={`text-5xl font-black ${colors.text}`}>{data.utilisateurs}</span>
+                      <span className={`text-[12px] font-bold uppercase tracking-widest mt-1 ${colors.muted}`}>Clients</span>
                     </div>
                   </div>
                 </div>
@@ -291,13 +293,13 @@ const AdminDashboard: React.FC = () => {
           )}
 
           {activeView === 'prospects' && (
-            <section className={`rounded-[32px] border overflow-hidden ${colors.panel} shadow-lg shadow-slate-200/20 dark:shadow-none`}>
-              <div className={`p-8 border-b ${colors.border} flex flex-col sm:flex-row justify-between items-center gap-6 bg-slate-50/50 dark:bg-slate-900/50`}>
+            <section className={`rounded-2xl border overflow-hidden ${colors.panel}`}>
+              <div className={`p-6 border-b ${colors.border} flex flex-col sm:flex-row justify-between items-center gap-6 ${colors.soft}`}>
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-indigo-500/10 rounded-xl">
-                    <MessageCircle className="text-indigo-500" size={24} />
+                  <div className={`p-3 rounded-xl ${colors.badgeBg}`}>
+                    <MessageCircle className={colors.text} size={20} />
                   </div>
-                  <h2 className="text-2xl font-black text-slate-800 dark:text-white">Base Prospects</h2>
+                  <h2 className={`text-xl font-bold ${colors.text}`}>Base Prospects</h2>
                 </div>
                 <ConfigProvider theme={{ algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
                   <RangePicker
@@ -315,41 +317,37 @@ const AdminDashboard: React.FC = () => {
                 <table className="min-w-full text-sm">
                   <thead className={`${colors.soft} border-b ${colors.border}`}>
                     <tr>
-                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Numéro</th>
-                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Statut IA</th>
-                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Messages</th>
-                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Dernier message</th>
-                      <th className="px-8 py-5 text-left font-bold uppercase tracking-widest text-[12px] text-slate-400">Premier contact</th>
+                      <th className={`px-6 py-4 text-left font-semibold uppercase tracking-wider text-[12px] ${colors.muted}`}>Numéro</th>
+                      <th className={`px-6 py-4 text-left font-semibold uppercase tracking-wider text-[12px] ${colors.muted}`}>Statut IA</th>
+                      <th className={`px-6 py-4 text-left font-semibold uppercase tracking-wider text-[12px] ${colors.muted}`}>Messages</th>
+                      <th className={`px-6 py-4 text-left font-semibold uppercase tracking-wider text-[12px] ${colors.muted}`}>Dernier message</th>
+                      <th className={`px-6 py-4 text-left font-semibold uppercase tracking-wider text-[12px] ${colors.muted}`}>Premier contact</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  <tbody className={`divide-y ${isDark ? 'divide-slate-800' : 'divide-slate-200'}`}>
                     {prospects.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className={`px-8 py-16 text-center text-lg ${colors.muted}`}>Aucun prospect dans cette période.</td>
+                        <td colSpan={5} className={`px-6 py-12 text-center text-sm ${colors.muted}`}>Aucun prospect dans cette période.</td>
                       </tr>
                     ) : prospects.map((prospect, index) => (
                       <tr key={`${prospect.phone ?? 'prospect'}-${index}`} className={`${colors.rowHover} group cursor-default`}>
-                        <td className="px-8 py-6 font-bold text-[15px]">{prospect.phone ?? '-'}</td>
-                        <td className="px-8 py-6">
-                          <span className={`px-4 py-2 rounded-full text-[13px] font-bold inline-flex items-center gap-2 shadow-sm ${
-                            prospect.statut === 'Chaud' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 
-                            prospect.statut === 'Alerte' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400'
+                        <td className={`px-6 py-4 font-semibold text-[14px] ${colors.text}`}>{prospect.phone ?? '-'}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 ${
+                            prospect.statut === 'Chaud' ? (isDark ? 'bg-emerald-900 text-emerald-300' : 'bg-emerald-100 text-emerald-700') : 
+                            prospect.statut === 'Alerte' ? (isDark ? 'bg-rose-900 text-rose-300' : 'bg-rose-100 text-rose-700') : (isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700')
                           }`}>
-                            <span className={`w-2 h-2 rounded-full ${
+                            <span className={`w-1.5 h-1.5 rounded-full ${
                               prospect.statut === 'Chaud' ? 'bg-emerald-500' : prospect.statut === 'Alerte' ? 'bg-rose-500' : 'bg-slate-500'
                             }`}></span>
                             {prospect.statut ?? prospect.sentiment ?? '-'}
                           </span>
                         </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-[14px]">
-                              {prospect.nb_messages ?? '-'}
-                            </div>
-                          </div>
+                        <td className="px-6 py-4">
+                          <span className={`font-medium ${colors.text}`}>{prospect.nb_messages ?? '-'}</span>
                         </td>
-                        <td className="px-8 py-6 max-w-[250px] truncate text-slate-500 font-medium text-[15px]">{formatDate(prospect.last_contact)}</td>
-                        <td className="px-8 py-6 text-slate-500 font-medium text-[15px]">{formatDate(prospect.first_contact)}</td>
+                        <td className={`px-6 py-4 max-w-[200px] truncate ${colors.muted} font-medium text-[14px]`}>{formatDate(prospect.last_contact)}</td>
+                        <td className={`px-6 py-4 ${colors.muted} font-medium text-[14px]`}>{formatDate(prospect.first_contact)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -359,7 +357,7 @@ const AdminDashboard: React.FC = () => {
           )}
 
           {activeView === 'users' && (
-            <section className={`rounded-[32px] border overflow-hidden ${colors.panel}`}>
+            <section className={`rounded-2xl border overflow-hidden ${colors.panel}`}>
               <UsersList isDark={isDark} />
             </section>
           )}
@@ -371,23 +369,22 @@ const AdminDashboard: React.FC = () => {
 
 function KpiCard({ title, value, subtitle, colors }: { title: string; value: React.ReactNode; subtitle?: string; colors: any }) {
   return (
-    <div className={`relative overflow-hidden rounded-[28px] border p-8 ${colors.panel} hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group`}>
-      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-teal-400 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      <p className={`text-[13px] font-bold uppercase tracking-[0.2em] ${colors.muted}`}>{title}</p>
-      <div className="mt-6 text-5xl font-black bg-clip-text text-transparent bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 drop-shadow-sm">{value}</div>
-      {subtitle && <p className={`mt-4 text-[15px] font-medium ${colors.muted}`}>{subtitle}</p>}
+    <div className={`rounded-2xl border p-6 ${colors.panel}`}>
+      <p className={`text-[12px] font-bold uppercase tracking-wider ${colors.muted}`}>{title}</p>
+      <div className={`mt-4 text-4xl font-black ${colors.text}`}>{value}</div>
+      {subtitle && <p className={`mt-2 text-[14px] font-medium ${colors.muted}`}>{subtitle}</p>}
     </div>
   );
 }
 
-function LegendRow({ label, value, color }: { label: string; value: React.ReactNode; color: string }) {
+function LegendRow({ label, value, color, colors }: { label: string; value: React.ReactNode; color: string; colors: any }) {
   return (
-    <div className={`flex items-center justify-between gap-4 p-4 rounded-2xl transition-colors duration-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/50`}>
-      <div className="flex items-center gap-4">
-        <span className={`w-4 h-4 rounded-full shadow-sm ${color}`} />
-        <span className="font-bold text-[15px]">{label}</span>
+    <div className={`flex items-center justify-between gap-4 p-3 rounded-xl transition-colors ${colors.rowHover}`}>
+      <div className="flex items-center gap-3">
+        <span className={`w-3 h-3 rounded-full ${color}`} />
+        <span className={`font-semibold text-[14px] ${colors.text}`}>{label}</span>
       </div>
-      <span className="font-black bg-slate-100 dark:bg-slate-800/80 px-4 py-1.5 rounded-xl text-[15px]">{value}</span>
+      <span className={`font-bold ${colors.text} ${colors.badgeBg} px-3 py-1 rounded-md text-[14px]`}>{value}</span>
     </div>
   );
 }

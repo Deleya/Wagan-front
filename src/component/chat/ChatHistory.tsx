@@ -6,6 +6,26 @@ import { HistoryOutlined } from '@ant-design/icons';
 import { TbLibraryPhoto } from 'react-icons/tb';
 import { RiCloseLine } from 'react-icons/ri';
 
+const getAssistantDisplay = (assistant: { name: string; role: string }) => {
+  const normalizedName = assistant.name.toLowerCase().trim();
+
+  if (normalizedName === 'ousmane') {
+    return {
+      name: 'Analyse de donnees',
+      role: "Analyse de donnees et developpement d'application",
+    };
+  }
+
+  if (normalizedName === 'kalika') {
+    return {
+      name: 'Dev',
+      role: "Developpement d'application",
+    };
+  }
+
+  return assistant;
+};
+
 export default function ChatHistory() {
   const isDark     = useAppSelector(s => s.theme.darkMode);
   const assistants = useAppSelector(s => s.assistant.assistants);
@@ -40,6 +60,7 @@ export default function ChatHistory() {
           </p>
 
           {assistants.map((a, i) => {
+            const displayAssistant = getAssistantDisplay(a);
             const isActive = a.name === selected;
             return (
               <div
@@ -52,9 +73,9 @@ export default function ChatHistory() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                  <img
-                    src={a.image}
-                    alt={a.name}
+                    <img
+                      src={a.image}
+                    alt={displayAssistant.name}
                     style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
                   />
                   <div style={{ minWidth: 0 }}>
@@ -63,13 +84,13 @@ export default function ChatHistory() {
                       color: isActive ? '#009688' : text,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {a.name}
+                      {displayAssistant.name}
                     </p>
                     <p style={{
                       fontSize: 11, color: muted,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {a.role}
+                      {displayAssistant.role}
                     </p>
                   </div>
                 </div>

@@ -1,12 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Tag } from 'antd';
+import { Table, Button, message, Tag, Space, Popconfirm, ConfigProvider, theme, Input } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { useAppSelector } from '../hooks/hooks';
+import type { User } from '../auth/authSlice';
 
-const UsersList: React.FC = () => {
-  const [users, setUsers] = useState([]);
+interface UsersListProps {
+  isDark?: boolean;
+}
+
+const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchEmail, setSearchEmail] = useState('');
   const token = useAppSelector((state) => state.auth.access);
+  const currentUser = useAppSelector((state) => state.auth.user);
   const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+
+  const isSuperAdmin = currentUser?.is_superuser;
+  const filteredUsers = users.filter((user) =>
+    user.email.toLowerCase().includes(searchEmail.trim().toLowerCase())
+  );
+  const colors = isDark ? {
+    surface: '#1e293b',
+    surfaceSoft: '#243247',
+    border: '#334155',
+    heading: '#f8fafc',
+    text: '#e2e8f0',
+    muted: '#94a3b8',
+    badgeBg: '#312e81',
+    badgeText: '#c7d2fe',
+  } : {
+    surface: '#ffffff',
+    surfaceSoft: '#f8fafc',
+    border: '#e2e8f0',
+    heading: '#0f172a',
+    text: '#334155',
+    muted: '#64748b',
+    badgeBg: '#fce7f3',
+    badgeText: '#be185d',
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -32,84 +64,155 @@ const UsersList: React.FC = () => {
     try {
       const res = await fetch(`${base}/api/admin/users/${id}/promote/`, {
         method: 'POST',
-        headers: { 
-          Authorization: `JWT ${token}`,
-          'Content-Type': 'application/json'
-        },
-      });
-      if (!res.ok) throw new Error('Erreur lors de la promotion');
-      message.success('Utilisateur promu avec succès !');
-      fetchUsers(); // Rafraichir la liste
-    } catch (err: any) {
-      message.error(err.message);
-    }
-  };
-
-  const openWhatsappSentimentDashboard = async () => {
-    try {
-      const res = await fetch(`${base}/api/admin/dashboard/session/`, {
-        method: 'POST',
-        headers: {
-          Authorization: `JWT ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `JWT ${token}`, 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
-        throw new Error('Impossible d’ouvrir le dashboard whatsapp sentiment.');
+        const d = await res.json();
+        throw new Error(d.error || 'Erreur lors de la promotion');
       }
-      const data = await res.json();
-      window.open(data.url, '_blank');
+      message.success('Utilisateur promu Admin avec succes !');
+      fetchUsers();
     } catch (err: any) {
       message.error(err.message);
     }
   };
 
-  const columns = [
-    { title: 'ID', dataIndex: 'id', key: 'id' },
+  const revokeAdmin = async (id: number) => {
+    try {
+      const res = await fetch(`${base}/api/admin/users/${id}/revoke/`, {
+        method: 'POST',
+        headers: { Authorization: `JWT ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Erreur lors de la revocation');
+      }
+      message.success('Administrateur retrograde au rang de User !');
+      fetchUsers();
+    } catch (err: any) {
+      message.error(err.message);
+    }
+  };
+
+  const transferSuperAdmin = async (id: number) => {
+    try {
+      const res = await fetch(`${base}/api/admin/users/${id}/transfer-superadmin/`, {
+        method: 'POST',
+        headers: { Authorization: `JWT ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Erreur lors du transfert');
+      }
+      message.success('Role Super Admin transfere definitivement !');
+      fetchUsers();
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err: any) {
+      message.error(err.message);
+    }
+  };
+
+  const columns: ColumnsType<User> = [
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
     { title: 'Email', dataIndex: 'email', key: 'email' },
-    { 
-      title: 'Rôle', 
-      key: 'role', 
-      render: (_: any, record: any) => (
-        record.is_staff 
-          ? <Tag color="gold">Admin</Tag> 
-          : <Tag color="blue">User</Tag>
-      )
+    {
+      title: 'Role',
+      key: 'role',
+      render: (_: unknown, record: User) => {
+        if (record.is_superuser) return <Tag color="magenta">Super Admin</Tag>;
+        if (record.is_staff) return <Tag color="gold">Admin</Tag>;
+        return <Tag color="blue">User</Tag>;
+      },
     },
-    { title: "Date d'inscription", dataIndex: 'date_joined', key: 'date_joined', render: (date: string) => new Date(date).toLocaleDateString() },
+    {
+      title: "Date d'inscription",
+      dataIndex: 'date_joined',
+      key: 'date_joined',
+      render: (date: string) => new Date(date).toLocaleDateString(),
+    },
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: any, record: any) => (
-        !record.is_staff && (
-          <Button type="primary" onClick={() => promoteAdmin(record.id)}>
-            Promouvoir Admin
-          </Button>
-        )
+      render: (_: unknown, record: User) => (
+        <Space wrap>
+          {isSuperAdmin && !record.is_staff && (
+            <Button type="primary" size="middle" onClick={() => promoteAdmin(record.id)}>
+              Promouvoir Admin
+            </Button>
+          )}
+
+          {isSuperAdmin && record.is_staff && !record.is_superuser && (
+            <Popconfirm title="Revoquer les droits d'administration de cet utilisateur ?" onConfirm={() => revokeAdmin(record.id)}>
+              <Button danger size="middle">Revoquer</Button>
+            </Popconfirm>
+          )}
+
+          {isSuperAdmin && !record.is_superuser && record.is_staff && (
+            <Popconfirm
+              title="Transferer le role Super Admin ?"
+              description="Vous perdrez ce privilege immediatement. Proceder ?"
+              onConfirm={() => transferSuperAdmin(record.id)}
+            >
+              <Button type="dashed" danger size="middle">Leguer Super Admin</Button>
+            </Popconfirm>
+          )}
+        </Space>
       ),
     },
   ];
 
   return (
-    <div className="p-8">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-        <h2 className="text-2xl font-bold dark:text-white">Gestion des Utilisateurs</h2>
-        <button
-          onClick={openWhatsappSentimentDashboard}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          disabled={!token}
+    <ConfigProvider theme={{ algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
+      <div className="w-full" style={{ backgroundColor: colors.surface, color: colors.text }}>
+        <div
+          className="px-6 py-5 flex justify-between items-center gap-4"
+          style={{ borderBottom: `1px solid ${colors.border}`, backgroundColor: colors.surface }}
         >
-          Ouvrir le dashboard Whatsapp Sentiment
-        </button>
+          <div>
+            <h3 className="font-semibold" style={{ color: colors.heading, fontSize: 20, margin: 0 }}>
+              Liste des Utilisateurs Inscrits
+            </h3>
+            <p style={{ color: colors.muted, fontSize: 14, margin: '6px 0 0' }}>
+              Comptes autorises a utiliser l'espace admin
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <Input.Search
+              allowClear
+              placeholder="Rechercher une adresse email"
+              value={searchEmail}
+              onChange={(event) => setSearchEmail(event.target.value)}
+              style={{ width: 280 }}
+            />
+            {isSuperAdmin ? (
+              <span
+                className="px-3 py-1.5 rounded-full font-bold uppercase tracking-wider"
+                style={{ fontSize: 12, backgroundColor: colors.badgeBg, color: colors.badgeText }}
+              >
+                Mode Super Admin
+              </span>
+            ) : (
+              <span
+                className="px-3 py-1.5 rounded-full font-bold uppercase tracking-wider"
+                style={{ fontSize: 12, backgroundColor: colors.surfaceSoft, color: colors.text }}
+              >
+                Connecte: {currentUser?.email} (Admin Normal)
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="p-4" style={{ backgroundColor: colors.surface }}>
+          <Table
+            dataSource={filteredUsers}
+            columns={columns}
+            rowKey="id"
+            loading={loading}
+            pagination={{ pageSize: 5 }}
+            size="middle"
+          />
+        </div>
       </div>
-      <Table 
-        dataSource={users} 
-        columns={columns} 
-        rowKey="id" 
-        loading={loading} 
-        className="bg-white dark:bg-gray-800 rounded shadow"
-      />
-    </div>
+    </ConfigProvider>
   );
 };
 

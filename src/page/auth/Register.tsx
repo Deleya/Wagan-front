@@ -33,8 +33,9 @@ const Register: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-      const redirectUri = 'http://localhost:5173/auth/google';
-      const res = await fetch(`${base}/api/auth/o/google-oauth2/?redirect_uri=${redirectUri}`);
+      const backendDomain = base.includes('127.0.0.1') ? base.replace('127.0.0.1', 'localhost') : base;
+      const redirectUri = `${backendDomain}/api/auth/google/callback/`;
+      const res = await fetch(`${base}/api/auth/o/google-oauth2/?redirect_uri=${encodeURIComponent(redirectUri)}`);
       if (!res.ok) {
         throw new Error("Impossible de récupérer l'URL d'authentification Google");
       }

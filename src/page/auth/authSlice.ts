@@ -19,11 +19,20 @@ interface AuthState {
   error: string | null;
 }
 
+const getLocalToken = (key: string) => {
+  const item = localStorage.getItem(key);
+  if (!item || item === 'undefined' || item === 'null') return null;
+  return item;
+};
+
+const initialAccess = getLocalToken('access');
+const initialRefresh = getLocalToken('refresh');
+
 const initialState: AuthState = {
-  access: localStorage.getItem('access'),
-  refresh: localStorage.getItem('refresh'),
+  access: initialAccess,
+  refresh: initialRefresh,
   user: null,
-  isAuthenticated: !!localStorage.getItem('access'),
+  isAuthenticated: !!initialAccess,
   isAdmin: false,
   status: 'idle',
   error: null,

@@ -3,6 +3,9 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import ThemeWrapper from './component/chat/ThemeWrapper';
 import ChatComponent from './component/chat/chatComponent';
 import Home from './page/Home/home';
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from './page/hooks/hooks';
+import { fetchUserProfile, logout } from './page/auth/authSlice';
 
 import Login from './page/auth/Login';
 import Register from './page/auth/Register';
@@ -61,6 +64,17 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, user, status } = useAppSelector(s => s.auth);
+
+  useEffect(() => {
+    if (isAuthenticated && !user && status !== 'loading') {
+      dispatch(fetchUserProfile()).unwrap().catch(() => {
+        dispatch(logout());
+      });
+    }
+  }, [isAuthenticated, user, status, dispatch]);
+
   return (
     <ThemeWrapper>
       <RouterProvider router={router} />

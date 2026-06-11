@@ -15,14 +15,18 @@ import AddAssistantModal from './AddAssistantModal.tsx';
 
 import { IoLink }              from 'react-icons/io5';
 import { MdOutlineAttachFile } from 'react-icons/md';
-import { FiCopy, FiCheck }     from 'react-icons/fi';
+import { FiCopy, FiCheck, FiLogOut, FiLogIn }     from 'react-icons/fi';
 import { LuSendHorizontal }    from 'react-icons/lu';
 import { RiMenuFoldLine, RiMenuUnfoldLine } from 'react-icons/ri';
+import { FaUserCircle } from 'react-icons/fa';
+import { Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { logout } from '../../page/auth/authSlice';
 
 /* ─── Assistants disponibles ─── */
 const ASSISTANTS = [
-  { name: 'Ousmane', role: 'Data et AI Coach', image: ousmaneImg },
-  { name: 'Kalika',  role: 'Bug Finder',       image: kalikaImg  },
+  { name: 'Analyse de donnees', role: "Analyse de donnees et developpement d'application", image: ousmaneImg },
+  { name: 'Dev', role: "Developpement d'application", image: kalikaImg },
 ];
 
 /* ─── Typing dots ─── */
@@ -107,10 +111,25 @@ export default function ChatComponent() {
   const isDark           = useAppSelector(s => s.theme.darkMode);
   const assistantsActifs = useAppSelector(s => s.assistant.assistants);
   const { messages, status } = useAppSelector(s => s.chat);
+  const { isAuthenticated, isAdmin, user } = useAppSelector(s => s.auth);
   const allAdded = assistantsActifs.length >= ASSISTANTS.length;
   const isLoading = status === 'loading';
 
   const c = getColors(isDark);
+
+  const handleMenuClick: MenuProps['onClick'] = (e) => {
+    if (e.key === 'logout') {
+      dispatch(logout());
+      navigate('/');
+    } else if (e.key === 'dashboard') {
+      navigate('/admin/dashboard');
+    }
+  };
+
+  const userMenuItems: MenuProps['items'] = [
+    ...(isAdmin ? [{ key: 'dashboard', label: 'Dashboard Admin' }] : []),
+    { key: 'logout', label: 'Se déconnecter', icon: <FiLogOut />, danger: true },
+  ];
 
   /* ── Auto-scroll vers le bas ── */
   useEffect(() => {
@@ -196,6 +215,45 @@ export default function ChatComponent() {
           {/* Contenu scrollable */}
           <div style={{ flex: 1, overflowY: 'auto' }} className="scrollbar-hide">
             <ChatHistory />
+          </div>
+
+          {/* User Profile Footer */}
+          <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: 12, marginTop: 12 }}>
+            {isAuthenticated ? (
+              <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} placement="topRight" trigger={['click']}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px',
+                  borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s',
+                  color: c.text
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = c.surfaceAlt)}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <FaUserCircle size={28} style={{ color: '#009688' }} />
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                      {user?.email ? user.email.split('@')[0] : "Mon Compte"}
+                    </div>
+                  </div>
+                </div>
+              </Dropdown>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  width: '100%', padding: '10px', borderRadius: 8,
+                  background: '#009688', color: '#fff', border: 'none',
+                  cursor: 'pointer', fontWeight: 600, fontSize: 14,
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#007A6E')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#009688')}
+              >
+                <FiLogIn size={18} />
+                Se connecter
+              </button>
+            )}
           </div>
         </div>
       </aside>
