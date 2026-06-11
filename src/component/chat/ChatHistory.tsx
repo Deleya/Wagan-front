@@ -44,6 +44,12 @@ export default function ChatHistory() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const savedHistory = useAppSelector(s => s.chat.savedHistory);
+  const messagesByAssistant = useAppSelector(s => s.chat.messagesByAssistant);
+
+  const currentMessages = selected ? messagesByAssistant[selected] || [] : [];
+  const extractedLinks = currentMessages
+    .filter(m => m.role === 'user')
+    .flatMap(m => m.text.match(/https?:\/\/[^\s]+/g) || []);
 
   const handleNavClick = (label: string) => {
     if (label === 'Nouvelle discussion') {
@@ -224,13 +230,36 @@ export default function ChatHistory() {
 
       {/* ── Drawer Bibliothèque ── */}
       <Drawer
-        title="Bibliothèque des fichiers"
+        title="Bibliothèque (Liens de la session)"
         placement="left"
         onClose={() => setLibraryOpen(false)}
         open={libraryOpen}
         styles={{ header: { background: isDark ? '#1a1a1a' : '#fff' }, body: { background: isDark ? '#111' : '#fafafa' } }}
       >
-        <Empty description="Aucun fichier sauvegardé. Vos pièces jointes (fichiers, liens) apparaîtront ici." />
+        {extractedLinks.length === 0 ? (
+          <Empty description="Aucun lien partagé dans cette session." />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {extractedLinks.map((link, idx) => (
+              <a 
+                key={idx} 
+                href={link} 
+                target="_blank" 
+                rel="noreferrer"
+                style={{ 
+                  display: 'block', padding: 12, background: isDark ? '#1e1e1e' : '#fff', 
+                  borderRadius: 8, border: `1px solid ${border}`,
+                  color: '#009688', textDecoration: 'none', wordBreak: 'break-all',
+                  fontSize: 13, transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = isDark ? '#2a2a2a' : '#f0f0f0')}
+                onMouseLeave={e => (e.currentTarget.style.background = isDark ? '#1e1e1e' : '#fff')}
+              >
+                🔗 {link}
+              </a>
+            ))}
+          </div>
+        )}
       </Drawer>
     </div>
   );

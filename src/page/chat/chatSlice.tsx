@@ -16,7 +16,6 @@ export interface SavedSession {
 export interface SendMessageArgs {
   message: string;
   assistantName: string;
-  githubLink?: string;
   files?: File[];
 }
 
@@ -35,10 +34,6 @@ export const sendMessageToBot = createAsyncThunk<
       formData.append('message', args.message);
       // On peut ajouter le nom de l'assistant pour le backend si besoin
       formData.append('assistant', args.assistantName);
-      
-      if (args.githubLink) {
-        formData.append('github', args.githubLink);
-      }
       
       if (args.files && args.files.length > 0) {
         args.files.forEach(f => {
@@ -129,6 +124,29 @@ const chatSlice = createSlice({
     clearHistory(state) {
       state.savedHistory = [];
       localStorage.removeItem('wagan_history');
+    },
+    restoreHistory(state, action: { payload: string }) {
+      const sessionId = action.payload;
+      const sessionIndex = state.savedHistory.findIndex(s => s.id === sessionId);
+      if (sessionIndex !== -1) {
+        const session = state.savedHistory[sessionIndex];
+        
+        // Optionnel: on sauvegarde le chat actuel avant d'écraser si non vide
+        const currentMsgs = state.messagesByAssistant[session.assistantName] || [];
+        if (currentMsgs.length > 0) {
+          state.savedHistory.unshift({
+            id: Date.now().toString(),
+            assistantName: session.assistantName,
+            date: new Date().toLocaleString(),
+            preview: currentMsgs[0].text.substring(0, 50) + '...',
+            messages: [...currentMsgs]
+          });
+        }
+
+        state.messagesByAssistant[session.assistantName] = [...session.messages];
+        state.savedHistory.splice(sessionIndex, 1); // on le retire de l'historique puisqu'il redevient actif
+        localStorage.setItem('wagan_history', JSON.stringify(state.savedHistory));
+      }
     }
   },
   extraReducers: (builder) => {
@@ -136,10 +154,9 @@ const chatSlice = createSlice({
       .addCase(sendMessageToBot.pending, (state, action) => {
         state.status      = 'loading';
         state.error       = null;
-        const { assistantName, message, githubLink, files } = action.meta.arg;
+        const { assistantName, message, files } = action.meta.arg;
         
         let textToShow = message;
-        if (githubLink) textToShow += `\n\n🔗 ${githubLink}`;
         if (files && files.length > 0) textToShow += `\n\n📎 ${files.length} fichier(s) joint(s)`;
 
         state.pendingUser = textToShow;
@@ -176,5 +193,5 @@ const chatSlice = createSlice({
   },
 });
 
-export const { clearError, clearMessages, clearHistory } = chatSlice.actions;
+export const { clearError, clearMessages, clearHistory, restoreHistory } = chatSlice.actions;
 export default chatSlice.reducer;

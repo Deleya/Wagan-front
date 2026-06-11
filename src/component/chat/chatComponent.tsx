@@ -13,7 +13,6 @@ import ChatNavbar        from './ChatNavbar.tsx';
 import MarkdownMessage   from './MarkdownMessage';
 import AddAssistantModal from './AddAssistantModal.tsx';
 
-import { IoLink }              from 'react-icons/io5';
 import { MdOutlineAttachFile } from 'react-icons/md';
 import { FiCopy, FiCheck, FiLogOut, FiLogIn }     from 'react-icons/fi';
 import { LuSendHorizontal }    from 'react-icons/lu';
@@ -105,8 +104,6 @@ export default function ChatComponent() {
 
   // States pour pièces jointes
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [githubLink,    setGithubLink]    = useState('');
-  const [showLinkInput, setShowLinkInput] = useState(false);
 
   const navigate    = useNavigate();
   const dispatch    = useAppDispatch();
@@ -157,20 +154,17 @@ export default function ChatComponent() {
 
   const handleSend = () => {
     if (!selectedAssistant) return;
-    if (!input.trim() && selectedFiles.length === 0 && !githubLink) return;
+    if (!input.trim() && selectedFiles.length === 0) return;
     if (isLoading) return;
 
     dispatch(sendMessageToBot({
       message: input.trim(),
       assistantName: selectedAssistant,
-      githubLink: githubLink || undefined,
       files: selectedFiles.length > 0 ? selectedFiles : undefined
     }));
     
     setInput('');
     setSelectedFiles([]);
-    setGithubLink('');
-    setShowLinkInput(false);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
@@ -437,8 +431,8 @@ export default function ChatComponent() {
         }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
-            {/* Badges Fichiers & Lien */}
-            {(selectedFiles.length > 0 || githubLink) && (
+            {/* Badges Fichiers */}
+            {selectedFiles.length > 0 && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                 {selectedFiles.map((f, i) => (
                   <div key={i} style={{
@@ -453,44 +447,6 @@ export default function ChatComponent() {
                     />
                   </div>
                 ))}
-                {githubLink && (
-                  <div style={{
-                    background: '#eaf4f3', padding: '4px 10px', borderRadius: 12,
-                    fontSize: 12, color: '#009688', display: 'flex', alignItems: 'center', gap: 6,
-                    border: '1px solid #009688'
-                  }}>
-                    🔗 {githubLink}
-                    <RiCloseLine 
-                      cursor="pointer" 
-                      onClick={() => setGithubLink('')}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Input Link Overlay */}
-            {showLinkInput && (
-              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <input 
-                  type="text" 
-                  placeholder="Lien GitHub complet (ex: https://github.com/...)"
-                  value={githubLink}
-                  onChange={e => setGithubLink(e.target.value)}
-                  style={{
-                    flex: 1, background: c.inputBg, border: `1px solid ${c.border}`, 
-                    padding: '8px 12px', borderRadius: 8, color: c.text, outline: 'none'
-                  }}
-                />
-                <button 
-                  onClick={() => setShowLinkInput(false)}
-                  style={{
-                    background: '#009688', color: '#fff', border: 'none', 
-                    padding: '8px 16px', borderRadius: 8, cursor: 'pointer'
-                  }}
-                >
-                  OK
-                </button>
               </div>
             )}
 
@@ -532,14 +488,6 @@ export default function ChatComponent() {
                   <button
                     className={`toolbar-btn${isDark ? ' dark' : ''}`}
                     style={{ color: c.muted }}
-                    title="Ajouter un lien"
-                    onClick={() => setShowLinkInput(v => !v)}
-                  >
-                    <IoLink size={17} />
-                  </button>
-                  <button
-                    className={`toolbar-btn${isDark ? ' dark' : ''}`}
-                    style={{ color: c.muted }}
                     title="Joindre un fichier"
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -564,11 +512,11 @@ export default function ChatComponent() {
                     <span style={{ fontSize: 11, color: c.muted }}>{input.length}</span>
                   )}
                   <button
-                    className={`send-btn ${(input.trim() || selectedFiles.length || githubLink) && !isLoading ? 'active' : 'inactive'}`}
+                    className={`send-btn ${(input.trim() || selectedFiles.length) && !isLoading ? 'active' : 'inactive'}`}
                     onClick={handleSend}
-                    disabled={(!input.trim() && !selectedFiles.length && !githubLink) || isLoading}
+                    disabled={(!input.trim() && !selectedFiles.length) || isLoading}
                     style={
-                      (!input.trim() && !selectedFiles.length && !githubLink) || isLoading
+                      (!input.trim() && !selectedFiles.length) || isLoading
                         ? { background: c.surfaceAlt, color: c.muted }
                         : {}
                     }
