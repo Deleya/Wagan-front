@@ -97,7 +97,10 @@ const Login: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl relative">
+        <Link to="/" className="absolute top-4 left-4 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+          &larr; Retour à l'accueil
+        </Link>
         <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">Connexion</h2>
 
         <Form name="login" onFinish={onFinish} layout="vertical" className="mt-8">

@@ -24,7 +24,7 @@ export default function Title() {
                     className="text-transparent bg-clip-text bg-gradient-to-r from-[#009688]  to-[#FF9800BF]">IA </span>
 
                 <span
-                    className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF9800BF] via-[#FF9800BF] to-[#F44336]"> compgnon </span>
+                    className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF9800BF] via-[#FF9800BF] to-[#F44336]"> compagnon </span>
             </p>
         </div>
     );
