@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { setTokens, fetchUserProfile } from './authSlice';
 import { useAppDispatch } from '../hooks/hooks';
 import { Button, Input, Form, message, Divider, Alert } from 'antd';
-import { GoogleOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
+import { GoogleOutlined, MailOutlined, LockOutlined, HomeOutlined } from '@ant-design/icons';
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -96,11 +96,11 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl relative">
-        <Link to="/" className="absolute top-4 left-4 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
-          &larr; Retour à l'accueil
-        </Link>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 relative">
+      <Link to="/" className="absolute top-6 left-6 flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow-md hover:shadow-lg transition-all text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400">
+        <HomeOutlined className="text-xl" />
+      </Link>
+      <div className="w-full max-w-md p-8 space-y-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl">
         <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white">Connexion</h2>
 
         <Form name="login" onFinish={onFinish} layout="vertical" className="mt-8">
