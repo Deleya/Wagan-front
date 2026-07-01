@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { BarChart3, LogOut, MessageCircle, PanelLeftClose, PanelLeftOpen, Users } from 'lucide-react';
+import { BarChart3, LogOut, MessageCircle, PanelLeftClose, PanelLeftOpen, Settings, Users } from 'lucide-react';
 import UsersList from './UsersList';
+import BotConfigPanel from './BotConfigPanel';
 import { logout } from '../auth/authSlice';
 import { useAppDispatch } from '../hooks/hooks';
 import { DatePicker, ConfigProvider, theme } from 'antd';
@@ -12,7 +13,7 @@ const { RangePicker } = DatePicker;
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-type ActiveView = 'analyse' | 'prospects' | 'users';
+type ActiveView = 'analyse' | 'prospects' | 'users' | 'config';
 
 interface Prospect {
   phone?: string;
@@ -150,6 +151,7 @@ const AdminDashboard: React.FC = () => {
     { key: 'analyse' as const, label: 'Analyse', icon: BarChart3 },
     { key: 'prospects' as const, label: 'Prospects', icon: MessageCircle },
     { key: 'users' as const, label: 'Utilisateurs', icon: Users },
+    { key: 'config' as const, label: 'Configuration', icon: Settings },
   ];
 
   return (
@@ -219,7 +221,10 @@ const AdminDashboard: React.FC = () => {
           <header className={`flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-8 rounded-2xl border ${colors.panel} mb-8`}>
             <div>
               <h1 className={`text-3xl font-extrabold tracking-tight ${colors.text}`}>
-                {activeView === 'analyse' ? 'Analyse & Insights' : activeView === 'prospects' ? 'Base Prospects' : 'Utilisateurs Inscrits'}
+                {activeView === 'analyse' ? 'Analyse & Insights'
+                  : activeView === 'prospects' ? 'Base Prospects'
+                  : activeView === 'config' ? 'Configuration du Chatbot'
+                  : 'Utilisateurs Inscrits'}
               </h1>
               <p className={`text-[15px] mt-2 font-medium ${colors.muted}`}>Tableau de bord de gestion et d'intelligence artificielle</p>
             </div>
@@ -360,6 +365,10 @@ const AdminDashboard: React.FC = () => {
             <section className={`rounded-2xl border overflow-hidden ${colors.panel}`}>
               <UsersList isDark={isDark} />
             </section>
+          )}
+
+          {activeView === 'config' && (
+            <BotConfigPanel colors={colors} isDark={isDark} />
           )}
         </main>
       </div>
