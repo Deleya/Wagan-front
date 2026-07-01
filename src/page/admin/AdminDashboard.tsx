@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
-import { BarChart3, LogOut, MessageCircle, PanelLeftClose, PanelLeftOpen, Settings, Users } from 'lucide-react';
+import { BarChart3, LogOut, MessageCircle, PanelLeftClose, PanelLeftOpen, Settings, Users, Flame } from 'lucide-react';
 import UsersList from './UsersList';
 import BotConfigPanel from './BotConfigPanel';
+import HotLeadsList from './HotLeadsList';
 import { logout } from '../auth/authSlice';
 import { useAppDispatch } from '../hooks/hooks';
 import { DatePicker, ConfigProvider, theme } from 'antd';
@@ -13,7 +14,7 @@ const { RangePicker } = DatePicker;
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-type ActiveView = 'analyse' | 'prospects' | 'users' | 'config';
+type ActiveView = 'analyse' | 'prospects' | 'users' | 'config' | 'hotleads';
 
 interface Prospect {
   phone?: string;
@@ -23,6 +24,7 @@ interface Prospect {
   last_contact?: string;
   first_contact?: string;
   statut?: string;
+  color?: string;
 }
 
 interface DashboardData {
@@ -30,16 +32,20 @@ interface DashboardData {
   utilisateurs: number;
   positifs: number;
   neutres: number;
-  negatifs: number;
+  nb_lost_leads: number;
+  nb_bot_stuck: number;
+  nb_angry: number;
   pending: number;
   p_positif: number;
   p_neutre: number;
-  p_negatif: number;
+  nb_analyses: number;
   now: string;
   prospects_list?: Prospect[];
   taux_conversion?: number;
   nb_prospects_convertis?: number;
   avg_messages_to_convert?: number | null;
+  taux_bot_stuck?: number;
+  hot_leads_today?: number;
 }
 
 const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
@@ -108,13 +114,15 @@ const AdminDashboard: React.FC = () => {
 
   const chartData = useMemo(() => {
     const hasData = !!data && data.utilisateurs > 0;
+    // On regroupe lost_lead + bot_stuck + angry en "Alertes" pour le graphe
+    const nbAlertes = (data?.nb_lost_leads ?? 0) + (data?.nb_bot_stuck ?? 0) + (data?.nb_angry ?? 0);
     return {
       labels: hasData
         ? ['Prospects Chauds', 'Prospects Froids', 'Alertes Humaines', ...(data.pending > 0 ? ['En attente'] : [])]
         : ['Aucune donnee'],
       datasets: [{
         data: hasData
-          ? [data.positifs, data.neutres, data.negatifs, ...(data.pending > 0 ? [data.pending] : [])]
+          ? [data.positifs, data.neutres, nbAlertes, ...(data.pending > 0 ? [data.pending] : [])]
           : [1],
         backgroundColor: hasData
           ? ['#10b981', '#94a3b8', '#f43f5e', ...(data.pending > 0 ? ['#fbbf24'] : [])]
@@ -149,6 +157,7 @@ const AdminDashboard: React.FC = () => {
 
   const navItems = [
     { key: 'analyse' as const, label: 'Analyse', icon: BarChart3 },
+    { key: 'hotleads' as const, label: 'Hot Leads', icon: Flame },
     { key: 'prospects' as const, label: 'Prospects', icon: MessageCircle },
     { key: 'users' as const, label: 'Utilisateurs', icon: Users },
     { key: 'config' as const, label: 'Configuration', icon: Settings },
@@ -222,6 +231,7 @@ const AdminDashboard: React.FC = () => {
             <div>
               <h1 className={`text-3xl font-extrabold tracking-tight ${colors.text}`}>
                 {activeView === 'analyse' ? 'Analyse & Insights'
+                  : activeView === 'hotleads' ? '🔥 Prospects Chauds'
                   : activeView === 'prospects' ? 'Base Prospects'
                   : activeView === 'config' ? 'Configuration du Chatbot'
                   : 'Utilisateurs Inscrits'}
@@ -279,7 +289,12 @@ const AdminDashboard: React.FC = () => {
                   <div className="space-y-6">
                     <LegendRow label="Prospects Chauds" value={`${data.positifs} (${data.p_positif}%)`} color="bg-emerald-500" colors={colors} />
                     <LegendRow label="Prospects Froids" value={`${data.neutres} (${data.p_neutre}%)`} color="bg-slate-500" colors={colors} />
-                    <LegendRow label="Alertes Humaines" value={`${data.negatifs} (${data.p_negatif}%)`} color="bg-rose-500" colors={colors} />
+                    <LegendRow
+                      label="Alertes Humaines"
+                      value={`${(data.nb_lost_leads ?? 0) + (data.nb_bot_stuck ?? 0) + (data.nb_angry ?? 0)} prospect(s)`}
+                      color="bg-rose-500"
+                      colors={colors}
+                    />
                     {data.pending > 0 && <LegendRow label="En attente" value={data.pending} color="bg-amber-500" colors={colors} />}
                   </div>
                 </div>
@@ -338,13 +353,17 @@ const AdminDashboard: React.FC = () => {
                       <tr key={`${prospect.phone ?? 'prospect'}-${index}`} className={`${colors.rowHover} group cursor-default`}>
                         <td className={`px-6 py-4 font-semibold text-[14px] ${colors.text}`}>{prospect.phone ?? '-'}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 ${
-                            prospect.statut === 'Chaud' ? (isDark ? 'bg-emerald-900 text-emerald-300' : 'bg-emerald-100 text-emerald-700') : 
-                            prospect.statut === 'Alerte' ? (isDark ? 'bg-rose-900 text-rose-300' : 'bg-rose-100 text-rose-700') : (isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700')
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              prospect.statut === 'Chaud' ? 'bg-emerald-500' : prospect.statut === 'Alerte' ? 'bg-rose-500' : 'bg-slate-500'
-                            }`}></span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5`}
+                            style={{
+                              backgroundColor: prospect.color ? `${prospect.color}22` : undefined,
+                              color: prospect.color ?? (isDark ? '#94a3b8' : '#64748b'),
+                            }}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: prospect.color ?? '#94a3b8' }}
+                            />
                             {prospect.statut ?? prospect.sentiment ?? '-'}
                           </span>
                         </td>
@@ -364,6 +383,12 @@ const AdminDashboard: React.FC = () => {
           {activeView === 'users' && (
             <section className={`rounded-2xl border overflow-hidden ${colors.panel}`}>
               <UsersList isDark={isDark} />
+            </section>
+          )}
+
+          {activeView === 'hotleads' && (
+            <section className={`rounded-2xl border overflow-hidden ${colors.panel}`}>
+              <HotLeadsList colors={colors} isDark={isDark} />
             </section>
           )}
 

@@ -3,7 +3,7 @@
 // dynamiquement la base de connaissances du bot WhatsApp depuis le Dashboard.
 
 import React, { useEffect, useState } from 'react';
-import { Save, RefreshCw, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 interface BotConfig {
   etablissement_nom: string;
