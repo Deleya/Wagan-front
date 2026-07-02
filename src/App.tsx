@@ -52,13 +52,17 @@ const router = createBrowserRouter([
     element: <RequireAdmin />,
     children: [
       {
-        path: '',
-        element: <UsersList />,
+        path: '',           // /admin → Dashboard CRM (page par défaut)
+        element: <AdminDashboard />,
       },
       {
-        path: 'dashboard',
+        path: 'dashboard',  // /admin/dashboard → Alias pour compatibilité
         element: <AdminDashboard />,
-      }
+      },
+      {
+        path: 'users',      // /admin/users → Liste des inscrits Wagan
+        element: <UsersList />,
+      },
     ]
   }
 ]);
