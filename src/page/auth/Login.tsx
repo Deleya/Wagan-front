@@ -46,22 +46,6 @@ const Login: React.FC = () => {
 
       if (profile.is_staff || profile.is_superuser) {
         message.success('Connexion Administrateur réussie !');
-        if (nextUrl && nextUrl.startsWith('http')) {
-          window.location.href = nextUrl;
-          return;
-        }
-        const bridgeRes = await fetch(`${base}/api/admin/dashboard/session/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `JWT ${data.access}`,
-          },
-        });
-        if (bridgeRes.ok) {
-          const bridgeData = await bridgeRes.json();
-          window.location.href = bridgeData.url;
-          return;
-        }
         navigate('/admin/dashboard');
       } else {
         message.success('Connexion réussie !');
