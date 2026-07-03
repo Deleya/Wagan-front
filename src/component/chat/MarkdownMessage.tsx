@@ -73,7 +73,7 @@ export default function MarkdownMessage({ content }: { content: string }) {
   const components: Components = {
 
     p: ({ children }) => (
-      <p style={{ margin: '0 0 12px', lineHeight: 1.75, color: text, lastChild: { marginBottom: 0 } } as any}>
+      <p style={{ margin: '0 0 12px', lineHeight: 1.75, color: text }}>
         {children}
       </p>
     ),
@@ -168,11 +168,13 @@ export default function MarkdownMessage({ content }: { content: string }) {
       </td>
     ),
 
-    code({ node, inline, className, children, ...props }: any) {
+    // NB: react-markdown v9+ ne fournit plus la prop `inline` :
+    // un code est traité comme bloc s'il est multi-ligne ou a un langage.
+    code({ className, children }) {
       const match    = /language-(\w+)/.exec(className || '');
       const lang     = match?.[1] ?? '';
       const codeText = String(children).replace(/\n$/, '');
-      const isBlock  = !inline && (codeText.includes('\n') || !!lang);
+      const isBlock  = codeText.includes('\n') || !!lang;
 
       /* ── Inline code ── */
       if (!isBlock) {
@@ -220,7 +222,6 @@ export default function MarkdownMessage({ content }: { content: string }) {
               fontSize: 13, lineHeight: 1.65,
               borderRadius: 0,
             }}
-            {...props}
           >
             {codeText}
           </SyntaxHighlighter>

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Tag, Space, Popconfirm, ConfigProvider, theme, Input } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAppSelector } from '../hooks/hooks';
 import type { User } from '../auth/authSlice';
+import { apiUrl, authHeader, toUserMessage } from '../../config/api';
 
 interface UsersListProps {
   isDark?: boolean;
@@ -14,7 +16,6 @@ const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
   const [searchEmail, setSearchEmail] = useState('');
   const token = useAppSelector((state) => state.auth.access);
   const currentUser = useAppSelector((state) => state.auth.user);
-  const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
   const isSuperAdmin = currentUser?.is_superuser;
   const filteredUsers = users.filter((user) =>
@@ -43,14 +44,14 @@ const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${base}/api/admin/users/`, {
-        headers: { Authorization: `JWT ${token}` },
+      const res = await fetch(apiUrl('/api/admin/users/'), {
+        headers: authHeader(token),
       });
       if (!res.ok) throw new Error('Erreur lors du chargement des utilisateurs');
       const data = await res.json();
       setUsers(data);
-    } catch (err: any) {
-      message.error(err.message);
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, 'Erreur lors du chargement des utilisateurs'));
     } finally {
       setLoading(false);
     }
@@ -62,9 +63,9 @@ const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
 
   const promoteAdmin = async (id: number) => {
     try {
-      const res = await fetch(`${base}/api/admin/users/${id}/promote/`, {
+      const res = await fetch(apiUrl(`/api/admin/users/${id}/promote/`), {
         method: 'POST',
-        headers: { Authorization: `JWT ${token}`, 'Content-Type': 'application/json' },
+        headers: { ...authHeader(token), 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
         const d = await res.json();
@@ -72,16 +73,16 @@ const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
       }
       message.success('Utilisateur promu Admin avec succes !');
       fetchUsers();
-    } catch (err: any) {
-      message.error(err.message);
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, 'Erreur lors de la promotion'));
     }
   };
 
   const revokeAdmin = async (id: number) => {
     try {
-      const res = await fetch(`${base}/api/admin/users/${id}/revoke/`, {
+      const res = await fetch(apiUrl(`/api/admin/users/${id}/revoke/`), {
         method: 'POST',
-        headers: { Authorization: `JWT ${token}`, 'Content-Type': 'application/json' },
+        headers: { ...authHeader(token), 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
         const d = await res.json();
@@ -89,16 +90,16 @@ const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
       }
       message.success('Administrateur retrograde au rang de User !');
       fetchUsers();
-    } catch (err: any) {
-      message.error(err.message);
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, 'Erreur lors de la revocation'));
     }
   };
 
   const transferSuperAdmin = async (id: number) => {
     try {
-      const res = await fetch(`${base}/api/admin/users/${id}/transfer-superadmin/`, {
+      const res = await fetch(apiUrl(`/api/admin/users/${id}/transfer-superadmin/`), {
         method: 'POST',
-        headers: { Authorization: `JWT ${token}`, 'Content-Type': 'application/json' },
+        headers: { ...authHeader(token), 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
         const d = await res.json();
@@ -107,8 +108,25 @@ const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
       message.success('Role Super Admin transfere definitivement !');
       fetchUsers();
       setTimeout(() => window.location.reload(), 1500);
-    } catch (err: any) {
-      message.error(err.message);
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, 'Erreur lors du transfert'));
+    }
+  };
+
+  const deleteUser = async (id: number) => {
+    try {
+      const res = await fetch(apiUrl(`/api/admin/users/${id}/delete/`), {
+        method: 'DELETE',
+        headers: authHeader(token),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || 'Erreur lors de la suppression');
+      }
+      message.success('Utilisateur supprimé avec succès.');
+      fetchUsers();
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, 'Erreur lors de la suppression'));
     }
   };
 
@@ -154,6 +172,21 @@ const UsersList: React.FC<UsersListProps> = ({ isDark = false }) => {
               onConfirm={() => transferSuperAdmin(record.id)}
             >
               <Button type="dashed" danger size="middle">Leguer Super Admin</Button>
+            </Popconfirm>
+          )}
+
+          {/* Règle métier : Seuls les admins ou super admins peuvent voir ce bouton. 
+              On ne peut supprimer que les simples utilisateurs (ni staff, ni superuser).
+              L'admin ne peut pas se supprimer lui-même. */}
+          {!record.is_staff && !record.is_superuser && currentUser?.id !== record.id && (
+            <Popconfirm
+              title="Supprimer cet utilisateur ?"
+              description="Cette action est irréversible. Confirmer ?"
+              onConfirm={() => deleteUser(record.id)}
+            >
+              <Button type="primary" danger size="middle" icon={<DeleteOutlined />}>
+                Supprimer
+              </Button>
             </Popconfirm>
           )}
         </Space>

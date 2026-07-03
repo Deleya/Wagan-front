@@ -2,18 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button, Input, Form, message, Divider, Alert } from 'antd';
 import { GoogleOutlined, MailOutlined, LockOutlined } from '@ant-design/icons';
+import { apiUrl, toUserMessage } from '../../config/api';
+import { startGoogleLogin } from './googleAuth';
 
 const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { email: string; password: string; password_confirm: string }) => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost';
-      const res = await fetch(`${base}/api/auth/users/`, {
+      const res = await fetch(apiUrl('/api/auth/users/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: values.email, password: values.password }),
@@ -40,8 +41,8 @@ const Register: React.FC = () => {
 
       message.success('Inscription réussie ! Veuillez vous connecter.');
       navigate('/login');
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(toUserMessage(err, 'Erreur lors de la création du compte.'));
     } finally {
       setLoading(false);
     }
@@ -49,19 +50,9 @@ const Register: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost';
-      const backendDomain = base.includes('127.0.0.1') ? base.replace('127.0.0.1', 'localhost') : base;
-      const redirectUri = `${backendDomain}/api/auth/google/callback/`;
-      const res = await fetch(
-        `${base}/api/auth/o/google-oauth2/?redirect_uri=${encodeURIComponent(redirectUri)}`
-      );
-      if (!res.ok) {
-        throw new Error("Impossible de récupérer l'URL d'authentification Google");
-      }
-      const data = await res.json();
-      window.location.href = data.authorization_url;
-    } catch (err: any) {
-      message.error(err.message || "Erreur d'initialisation de la connexion Google");
+      await startGoogleLogin();
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, "Erreur d'initialisation de la connexion Google"));
     }
   };
 

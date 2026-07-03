@@ -9,12 +9,26 @@ import HotLeadsList from './HotLeadsList';
 import { logout } from '../auth/authSlice';
 import { useAppDispatch } from '../hooks/hooks';
 import { DatePicker, ConfigProvider, theme } from 'antd';
+import { apiUrl, authHeader, toUserMessage } from '../../config/api';
 
 const { RangePicker } = DatePicker;
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 type ActiveView = 'analyse' | 'prospects' | 'users' | 'config' | 'hotleads';
+
+// Palette partagée entre le dashboard et ses sous-panneaux
+export interface PanelColors {
+  page: string;
+  panel: string;
+  soft: string;
+  text: string;
+  muted: string;
+  border: string;
+  hover: string;
+  rowHover: string;
+  badgeBg: string;
+}
 
 interface Prospect {
   phone?: string;
@@ -48,8 +62,6 @@ interface DashboardData {
   hot_leads_today?: number;
 }
 
-const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-
 const AdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,21 +77,21 @@ const AdminDashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem('access');
-        let url = `${base}/whatsapp/dashboard/api/`;
+        let url = apiUrl('/whatsapp/dashboard/api/');
         if (dateRange) {
           url += `?start_date=${dateRange[0]}&end_date=${dateRange[1]}`;
         }
         const response = await fetch(url, {
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...authHeader(token),
           },
         });
 
         if (!response.ok) throw new Error("Erreur lors de la recuperation des donnees");
         setData(await response.json());
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(toUserMessage(err, 'Erreur lors de la recuperation des donnees'));
       } finally {
         setLoading(false);
       }
@@ -88,7 +100,7 @@ const AdminDashboard: React.FC = () => {
     fetchDashboardData();
   }, [dateRange]);
 
-  const colors = isDark ? {
+  const colors: PanelColors = isDark ? {
     page: 'bg-slate-950 text-slate-100',
     panel: 'bg-slate-900 border-slate-800 shadow-sm',
     soft: 'bg-slate-800/50',
@@ -401,7 +413,7 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-function KpiCard({ title, value, subtitle, colors }: { title: string; value: React.ReactNode; subtitle?: string; colors: any }) {
+function KpiCard({ title, value, subtitle, colors }: { title: string; value: React.ReactNode; subtitle?: string; colors: PanelColors }) {
   return (
     <div className={`rounded-2xl border p-6 ${colors.panel}`}>
       <p className={`text-[12px] font-bold uppercase tracking-wider ${colors.muted}`}>{title}</p>
@@ -411,7 +423,7 @@ function KpiCard({ title, value, subtitle, colors }: { title: string; value: Rea
   );
 }
 
-function LegendRow({ label, value, color, colors }: { label: string; value: React.ReactNode; color: string; colors: any }) {
+function LegendRow({ label, value, color, colors }: { label: string; value: React.ReactNode; color: string; colors: PanelColors }) {
   return (
     <div className={`flex items-center justify-between gap-4 p-3 rounded-xl transition-colors ${colors.rowHover}`}>
       <div className="flex items-center gap-3">

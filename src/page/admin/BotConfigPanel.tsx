@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { apiUrl, authHeader, toUserMessage } from '../../config/api';
 
 interface BotConfig {
   etablissement_nom: string;
@@ -30,8 +31,6 @@ interface BotConfigPanelProps {
   isDark: boolean;
 }
 
-const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-
 const BotConfigPanel: React.FC<BotConfigPanelProps> = ({ colors, isDark }) => {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,17 +42,17 @@ const BotConfigPanel: React.FC<BotConfigPanelProps> = ({ colors, isDark }) => {
     const fetchConfig = async () => {
       try {
         const token = localStorage.getItem('access');
-        const response = await fetch(`${base}/whatsapp/config/`, {
+        const response = await fetch(apiUrl('/whatsapp/config/'), {
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...authHeader(token),
           },
         });
         if (!response.ok) throw new Error('Impossible de charger la configuration.');
         const data = await response.json();
         setConfig(data);
-      } catch (err: any) {
-        setFeedback({ type: 'error', message: err.message });
+      } catch (err: unknown) {
+        setFeedback({ type: 'error', message: toUserMessage(err, 'Impossible de charger la configuration.') });
       } finally {
         setLoading(false);
       }
@@ -68,11 +67,11 @@ const BotConfigPanel: React.FC<BotConfigPanelProps> = ({ colors, isDark }) => {
     setFeedback(null);
     try {
       const token = localStorage.getItem('access');
-      const response = await fetch(`${base}/whatsapp/config/`, {
+      const response = await fetch(apiUrl('/whatsapp/config/'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...authHeader(token),
         },
         body: JSON.stringify(config),
       });
@@ -80,8 +79,8 @@ const BotConfigPanel: React.FC<BotConfigPanelProps> = ({ colors, isDark }) => {
       const result = await response.json();
       setConfig(prev => prev ? { ...prev, updated_at: result.updated_at } : prev);
       setFeedback({ type: 'success', message: 'Configuration sauvegardée avec succès ! Le bot utilisera ces informations pour sa prochaine réponse.' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err: unknown) {
+      setFeedback({ type: 'error', message: toUserMessage(err, 'Erreur lors de la sauvegarde.') });
     } finally {
       setSaving(false);
       // Effacer le feedback après 5 secondes

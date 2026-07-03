@@ -2,21 +2,21 @@ import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Button, Input, Form, message } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
+import { apiUrl, toUserMessage } from '../../config/api';
 
 const ResetPasswordConfirm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { uid, token } = useParams<{ uid: string; token: string }>();
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { new_password: string; re_new_password: string }) => {
     if (values.new_password !== values.re_new_password) {
       return message.error('Les mots de passe ne correspondent pas.');
     }
 
     setLoading(true);
     try {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-      const res = await fetch(`${base}/api/auth/users/reset_password_confirm/`, {
+      const res = await fetch(apiUrl('/api/auth/users/reset_password_confirm/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -33,8 +33,8 @@ const ResetPasswordConfirm: React.FC = () => {
 
       message.success('Mot de passe réinitialisé avec succès !');
       navigate('/login');
-    } catch (err: any) {
-      message.error(err.message);
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, 'Erreur lors de la réinitialisation.'));
     } finally {
       setLoading(false);
     }

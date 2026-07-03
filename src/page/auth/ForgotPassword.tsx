@@ -2,29 +2,29 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button, Input, Form, message } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
+import { apiUrl, toUserMessage } from '../../config/api';
 
 const ForgotPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { email: string }) => {
     setLoading(true);
     try {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-      const res = await fetch(`${base}/api/auth/users/reset_password/`, {
+      const res = await fetch(apiUrl('/api/auth/users/reset_password/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
       });
 
       if (!res.ok) {
-        throw new Error('Erreur lors de la demande. Vérifiez que l\'email existe.');
+        throw new Error("Impossible d'envoyer le lien de réinitialisation. Réessayez plus tard.");
       }
 
       message.success('Si cet email existe, un lien de réinitialisation vous a été envoyé.');
       navigate('/login');
-    } catch (err: any) {
-      message.error(err.message);
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, 'Erreur lors de la demande de réinitialisation.'));
     } finally {
       setLoading(false);
     }

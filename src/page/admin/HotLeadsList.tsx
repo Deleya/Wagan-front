@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { apiUrl, authHeader, toUserMessage } from '../../config/api';
+import type { PanelColors } from './AdminDashboard';
 
 interface HotLead {
   phone_number: string;
@@ -7,9 +9,7 @@ interface HotLead {
   timestamp: string;
 }
 
-const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-
-const HotLeadsList: React.FC<{ isDark: boolean; colors: any }> = ({ isDark, colors }) => {
+const HotLeadsList: React.FC<{ isDark: boolean; colors: PanelColors }> = ({ isDark, colors }) => {
   const [leads, setLeads] = useState<HotLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,17 +18,17 @@ const HotLeadsList: React.FC<{ isDark: boolean; colors: any }> = ({ isDark, colo
     const fetchHotLeads = async () => {
       try {
         const token = localStorage.getItem('access');
-        const response = await fetch(`${base}/whatsapp/hot-leads/`, {
+        const response = await fetch(apiUrl('/whatsapp/hot-leads/'), {
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...authHeader(token),
           },
         });
         if (!response.ok) throw new Error("Erreur lors de la récupération des Hot Leads");
         const data = await response.json();
         setLeads(data.hot_leads || []);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(toUserMessage(err, 'Erreur lors de la récupération des Hot Leads'));
       } finally {
         setLoading(false);
       }

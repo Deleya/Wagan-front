@@ -1,10 +1,11 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../../page/hooks/hooks';
 import { useEffect } from 'react';
 import { fetchUserProfile } from '../../page/auth/authSlice';
 
 const RequireAdmin = () => {
   const dispatch = useAppDispatch();
+  const location = useLocation();
   const { isAuthenticated, isAdmin, user, status } = useAppSelector((state) => state.auth);
 
   // Si on est authentifié (token présent) mais qu'on a perdu les infos de l'utilisateur 
@@ -16,7 +17,8 @@ const RequireAdmin = () => {
   }, [isAuthenticated, user, status, dispatch]);
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // ?next= permet à Login de renvoyer l'utilisateur vers la page demandée
+    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
   // Pendant le chargement du profil, on affiche un écran d'attente

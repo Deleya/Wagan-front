@@ -4,6 +4,8 @@ import { setTokens, fetchUserProfile } from './authSlice';
 import { useAppDispatch } from '../hooks/hooks';
 import { Button, Input, Form, message, Divider, Alert } from 'antd';
 import { GoogleOutlined, MailOutlined, LockOutlined, HomeOutlined } from '@ant-design/icons';
+import { apiUrl, toUserMessage } from '../../config/api';
+import { startGoogleLogin } from './googleAuth';
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -11,14 +13,15 @@ const Login: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const nextUrl = searchParams.get('next');
+  // On n'accepte que des chemins internes (« /... ») pour éviter une redirection ouverte
+  const rawNext = searchParams.get('next');
+  const nextUrl = rawNext && rawNext.startsWith('/') ? rawNext : null;
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-      const res = await fetch(`${base}/api/auth/jwt/create/`, {
+      const res = await fetch(apiUrl('/api/auth/jwt/create/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
@@ -46,14 +49,14 @@ const Login: React.FC = () => {
 
       if (profile.is_staff || profile.is_superuser) {
         message.success('Connexion Administrateur réussie !');
-        navigate('/admin/dashboard');
+        navigate(nextUrl || '/admin/dashboard');
       } else {
         message.success('Connexion réussie !');
-        navigate('/chat');
+        navigate(nextUrl || '/chat');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur de connexion:', err);
-      setErrorMsg(err.message || 'Impossible de se connecter au serveur backend');
+      setErrorMsg(toUserMessage(err, 'Impossible de se connecter au serveur backend'));
     } finally {
       setLoading(false);
     }
@@ -61,21 +64,9 @@ const Login: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-      // ✅ redirect_uri pointe vers Django (pas le frontend)
-      // On force 'localhost' plutôt que 127.0.0.1 car c'est ce qui est dans Google Console
-      const backendDomain = base.includes('127.0.0.1') ? base.replace('127.0.0.1', 'localhost') : base;
-      const redirectUri = `${backendDomain}/api/auth/google/callback/`;
-      const res = await fetch(
-        `${base}/api/auth/o/google-oauth2/?redirect_uri=${encodeURIComponent(redirectUri)}`
-      );
-      if (!res.ok) {
-        throw new Error("Impossible de récupérer l'URL d'authentification Google");
-      }
-      const data = await res.json();
-      window.location.href = data.authorization_url;
-    } catch (err: any) {
-      message.error(err.message || "Erreur d'initialisation de la connexion Google");
+      await startGoogleLogin();
+    } catch (err: unknown) {
+      message.error(toUserMessage(err, "Erreur d'initialisation de la connexion Google"));
     }
   };
 

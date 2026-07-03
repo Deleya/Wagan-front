@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { apiUrl, authHeader } from '../../config/api';
 
 export interface User {
   id: number;
@@ -41,20 +42,19 @@ const initialState: AuthState = {
 export const fetchUserProfile = createAsyncThunk<User, void, { rejectValue: string }>(
   'auth/fetchUserProfile',
   async (_, { getState, rejectWithValue }) => {
-    const state: any = getState();
+    const state = getState() as { auth: AuthState };
     const token = state.auth.access;
     if (!token) return rejectWithValue('Aucun token disponible.');
 
-    const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
     try {
-      const res = await fetch(`${base}/api/auth/users/me/`, {
-        headers: { 'Authorization': `JWT ${token}` }
+      const res = await fetch(apiUrl('/api/auth/users/me/'), {
+        headers: authHeader(token)
       });
       if (!res.ok) throw new Error('Erreur récupération profil');
       const data = await res.json();
       return data as User;
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+    } catch (error: unknown) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Erreur récupération profil');
     }
   }
 );

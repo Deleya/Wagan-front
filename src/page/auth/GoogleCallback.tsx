@@ -61,9 +61,13 @@ const GoogleCallback: React.FC = () => {
           message.success('Connexion Google réussie !');
           navigate('/chat');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Erreur Callback Google:', err);
-        setErrorMsg(err.message || 'Une erreur est survenue lors de la connexion avec Google');
+        setErrorMsg(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Une erreur est survenue lors de la connexion avec Google'
+        );
         setLoading(false);
       }
     };

@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { apiUrl } from '../../config/api';
 
 export type Message = {
   role: 'user' | 'bot' | 'error';
@@ -26,8 +27,7 @@ export const sendMessageToBot = createAsyncThunk<
 >(
   'chat/sendMessageToBot',
   async (args, { rejectWithValue }) => {
-    const base = import.meta.env.VITE_API_URL ?? '';
-    const url  = `${base}/api/bot/`;
+    const url = apiUrl('/api/bot/');
 
     try {
       const formData = new FormData();
@@ -60,9 +60,11 @@ export const sendMessageToBot = createAsyncThunk<
 
       return botText as string;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       return rejectWithValue(
-        err?.message ?? 'Impossible de joindre le serveur. Vérifiez votre connexion.'
+        err instanceof TypeError || !(err instanceof Error)
+          ? 'Impossible de joindre le serveur. Vérifiez votre connexion.'
+          : err.message
       );
     }
   }
@@ -80,7 +82,7 @@ const loadHistory = (): SavedSession[] => {
   try {
     const s = localStorage.getItem('wagan_history');
     return s ? JSON.parse(s) : [];
-  } catch (e) { return []; }
+  } catch { return []; }
 };
 
 const initialState: ChatState = {
