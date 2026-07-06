@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { apiUrl } from '../../config/api';
+import { apiUrl, authHeader } from '../../config/api';
+import { loadUserJSON, removeUserKey, saveUserJSON } from '../../config/userStorage';
+import { logout, setTokens } from '../auth/authSlice';
 
 export type Message = {
   role: 'user' | 'bot' | 'error';
@@ -43,6 +45,8 @@ export const sendMessageToBot = createAsyncThunk<
 
       const res = await fetch(url, {
         method:  'POST',
+        // Le chat est réservé aux utilisateurs connectés (protection des crédits IA)
+        headers: authHeader(localStorage.getItem('access')),
         body:    formData, // fetch mettra automatiquement le bon Content-Type multipart/form-data
       });
 
@@ -78,12 +82,9 @@ interface ChatState {
   error:               string | null;
 }
 
-const loadHistory = (): SavedSession[] => {
-  try {
-    const s = localStorage.getItem('wagan_history');
-    return s ? JSON.parse(s) : [];
-  } catch { return []; }
-};
+// Historique chargé depuis l'espace de l'utilisateur COURANT uniquement
+// (clé namespacée "wagan_history:<user_id>" — voir config/userStorage.ts).
+const loadHistory = (): SavedSession[] => loadUserJSON<SavedSession[]>('wagan_history', []);
 
 const initialState: ChatState = {
   messagesByAssistant: {},
@@ -115,7 +116,7 @@ const chatSlice = createSlice({
           messages: [...msgs]
         };
         state.savedHistory.unshift(session);
-        localStorage.setItem('wagan_history', JSON.stringify(state.savedHistory));
+        saveUserJSON('wagan_history', state.savedHistory);
       }
 
       state.messagesByAssistant[assistantName] = [];
@@ -125,7 +126,7 @@ const chatSlice = createSlice({
     },
     clearHistory(state) {
       state.savedHistory = [];
-      localStorage.removeItem('wagan_history');
+      removeUserKey('wagan_history');
     },
     restoreHistory(state, action: { payload: string }) {
       const sessionId = action.payload;
@@ -147,12 +148,31 @@ const chatSlice = createSlice({
 
         state.messagesByAssistant[session.assistantName] = [...session.messages];
         state.savedHistory.splice(sessionIndex, 1); // on le retire de l'historique puisqu'il redevient actif
-        localStorage.setItem('wagan_history', JSON.stringify(state.savedHistory));
+        saveUserJSON('wagan_history', state.savedHistory);
       }
     }
   },
   extraReducers: (builder) => {
     builder
+      // ===== Cloisonnement par utilisateur =====
+      // Au LOGIN (SPA, sans rechargement de page) : on repart de l'état du
+      // NOUVEL utilisateur — jamais de résidu du compte précédent à l'écran.
+      .addCase(setTokens, (state) => {
+        state.messagesByAssistant = {};
+        state.savedHistory        = loadHistory();
+        state.pendingUser         = null;
+        state.status              = 'idle';
+        state.error               = null;
+      })
+      // Au LOGOUT : purge de l'état en mémoire (l'historique persisté reste
+      // dans l'espace localStorage du compte qui vient de partir).
+      .addCase(logout, (state) => {
+        state.messagesByAssistant = {};
+        state.savedHistory        = [];
+        state.pendingUser         = null;
+        state.status              = 'idle';
+        state.error               = null;
+      })
       .addCase(sendMessageToBot.pending, (state, action) => {
         state.status      = 'loading';
         state.error       = null;
