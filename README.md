@@ -1,54 +1,40 @@
-# React + TypeScript + Vite
+﻿# Wagan - Frontend Dashboard (React / Vite / TypeScript)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ce depot contient l'interface graphique (Dashboard) de la plateforme **Wagan**. Il permet aux administrateurs et conseillers de suivre en temps reel les performances du bot WhatsApp, d'analyser le pipeline de conversion des prospects et d'intervenir en cas de besoin.
 
-Currently, two official plugins are available:
+## Fonctionnalites Principales
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Tableau de Bord Analytique** : Suivi visuel des metriques cles (Prospects Chauds, En exploration, Alertes Humaines) via des graphiques Chart.js.
+- **Modales de Conversation Temps Reel** : Cliquez sur un prospect pour visualiser l'integralite de son historique WhatsApp sous forme de bulles de chat natives (Prospect a gauche, Bot a droite).
+- **Gestion des Hot Leads** : Disparition dynamique des cartes de leads chauds apres qu'un conseiller a clique sur le bouton de contact WhatsApp (avec validation anti-missclick).
+- **Design Moderne** : Interface propre, composants reutilisables, typographie premium (TailwindCSS).
 
-## Expanding the ESLint configuration
+## Stack Technique
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Framework** : React 18
+- **Build Tool** : Vite
+- **Langage** : TypeScript (Typage strict active)
+- **Styling** : TailwindCSS
+- **Requetes HTTP** : Axios (relie a l'API Django)
+- **Graphiques** : react-chartjs-2 (Chart.js)
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## Installation et Lancement en local
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+1. Clonez ce depot.
+2. Assurez-vous d'avoir Node.js (v18+) installe.
+3. Installez les dependances :
+   npm install
+4. Creez un fichier .env a la racine pour pointer vers l'API backend :
+   VITE_API_URL=http://127.0.0.1:8000/api
+5. Lancez le serveur de developpement :
+   npm run dev
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Deploiement en Production
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+L'application est compilee pour des performances optimales avec :
+   npm run build
+
+Le dossier dist genere peut ensuite etre deploye sur Nginx, Vercel, Netlify ou Cloudflare Pages.
+
+---
+*Ce projet a ete developpe de maniere rigoureuse, en respectant les standards d'architecture logicielle Senior.*
